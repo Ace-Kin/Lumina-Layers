@@ -21,6 +21,7 @@ from config import PrinterConfig, ColorSystem, SmartConfig, OUTPUT_DIR
 from core.naming import generate_calibration_filename
 from utils import Stats
 from utils.bambu_3mf_writer import export_scene_with_bambu_metadata
+from utils.helpers import safe_fix_3mf_names
 
 
 def _generate_voxel_mesh(voxel_matrix: np.ndarray, material_index: int,
