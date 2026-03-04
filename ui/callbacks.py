@@ -50,9 +50,9 @@ def on_lut_select(display_name):
     lut_path = LUTManager.get_lut_path(display_name)
     
     if lut_path:
-        return lut_path, f"✅ Selected: {display_name}"
+        return lut_path, f"[OK] Selected: {display_name}"
     else:
-        return None, f"❌ File not found: {display_name}"
+        return None, f"[ERROR] File not found: {display_name}"
 
 
 def on_lut_upload_save(uploaded_file):
@@ -83,7 +83,7 @@ def get_next_hint(mode, pts_count):
     """Get next corner point hint based on mode"""
     conf = ColorSystem.get(mode)
     if pts_count >= 4:
-        return "#### ✅ Positioning complete! Ready to extract!"
+        return "#### [OK] Positioning complete! Ready to extract!"
     label_zh = conf['corner_labels'][pts_count]
     label_en = conf.get('corner_labels_en', conf['corner_labels'])[pts_count]
     return f"#### 👉 点击 Click: **{label_zh} / {label_en}**"
@@ -114,7 +114,7 @@ def on_extractor_click(img, pts, mode, evt: gr.SelectData):
     """Set corner point by clicking image"""
     from core.extractor import draw_corner_points
     if len(pts) >= 4:
-        return img, pts, "#### ✅ 定位完成 Complete!"
+        return img, pts, "#### [OK] 定位完成 Complete!"
     n = pts + [[evt.index[0], evt.index[1]]]
     vis = draw_corner_points(img, n, mode)
     hint = get_next_hint(mode, len(n))
@@ -301,7 +301,7 @@ def on_color_swatch_click(selected_hex):
     # Clean up the hex value
     hex_color = selected_hex.strip()
     
-    return hex_color, f"✅ {hex_color}"
+    return hex_color, f"[OK] {hex_color}"
 
 
 def on_color_dropdown_select(selected_value):
@@ -317,7 +317,7 @@ def on_color_dropdown_select(selected_value):
     if not selected_value:
         return None, "未选择"
     
-    return selected_value, f"✅ {selected_value}"
+    return selected_value, f"[OK] {selected_value}"
 
 
 def on_lut_change_update_colors(lut_path, cache=None):
@@ -638,7 +638,7 @@ def merge_8color_data():
     print(f"[MERGE_8COLOR] Page 2 exists: {os.path.exists(path2)}")
     
     if not os.path.exists(path1) or not os.path.exists(path2):
-        return None, "❌ Missing temp pages. Please extract Page 1 and Page 2 first."
+        return None, "[ERROR] Missing temp pages. Please extract Page 1 and Page 2 first."
     
     try:
         lut1 = np.load(path1)
@@ -652,12 +652,12 @@ def merge_8color_data():
         np.save(LUT_FILE_PATH, merged)
         print(f"[MERGE_8COLOR] Saved merged LUT to: {LUT_FILE_PATH}")
         
-        return LUT_FILE_PATH, "✅ 8-Color LUT merged and saved!"
+        return LUT_FILE_PATH, "[OK] 8-Color LUT merged and saved!"
     except Exception as e:
         print(f"[MERGE_8COLOR] Error: {e}")
         import traceback
         traceback.print_exc()
-        return None, f"❌ Merge failed: {e}"
+        return None, f"[ERROR] Merge failed: {e}"
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -680,13 +680,13 @@ def on_merge_lut_select(display_name, lang="zh"):
 
     lut_path = LUTManager.get_lut_path(display_name)
     if not lut_path:
-        return f"**{I18n.get('merge_mode_label', lang)}**: ❌ File not found"
+        return f"**{I18n.get('merge_mode_label', lang)}**: [ERROR] File not found"
 
     try:
         mode, count = LUTMerger.detect_color_mode(lut_path)
         return f"**{I18n.get('merge_mode_label', lang)}**: {mode} ({count} colors)"
     except Exception as e:
-        return f"**{I18n.get('merge_mode_label', lang)}**: ❌ {e}"
+        return f"**{I18n.get('merge_mode_label', lang)}**: [ERROR] {e}"
 
 
 def on_merge_primary_select(display_name, lang="zh"):

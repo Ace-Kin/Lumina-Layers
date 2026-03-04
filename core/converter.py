@@ -513,9 +513,9 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     """
     # Input validation
     if image_path is None:
-        return None, None, None, "❌ Please upload an image"
+        return None, None, None, "[ERROR] Please upload an image"
     if lut_path is None:
-        return None, None, None, "⚠️ Please select or upload a .npy calibration file!"
+        return None, None, None, "[WARNING] Please select or upload a .npy calibration file!"
     
     # Handle LUT path (supports string path or Gradio File object)
     if isinstance(lut_path, str):
@@ -523,7 +523,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     elif hasattr(lut_path, 'name'):
         actual_lut_path = lut_path.name
     else:
-        return None, None, None, "❌ Invalid LUT file format"
+        return None, None, None, "[ERROR] Invalid LUT file format"
     
     # Handle backing separation: override backing_color_id if separate_backing is True
     # Error handling for checkbox state (Requirement 8.4)
@@ -577,7 +577,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             # Keep vector export behavior consistent with raster path:
             # never export an empty scene.
             if len(scene.geometry) == 0:
-                return None, None, None, "❌ Vector mesh generation failed: no valid geometry generated"
+                return None, None, None, "[ERROR] Vector mesh generation failed: no valid geometry generated"
             
             # 2. Export 3MF (unified Bambu metadata path)
             base_name = os.path.splitext(os.path.basename(image_path))[0]
@@ -603,7 +603,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 vec_slot_names.append(geom_name)
 
             if not vec_slot_names:
-                return None, None, None, "❌ Vector export aborted: all generated geometries are empty"
+                return None, None, None, "[ERROR] Vector export aborted: all generated geometries are empty"
             vec_preview_colors = vec_color_conf['preview']
 
             vec_print_settings = {
@@ -800,7 +800,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             smooth_sigma=smooth_sigma
         )
     except Exception as e:
-        return None, None, None, f"❌ Image processing failed: {e}"
+        return None, None, None, f"[ERROR] Image processing failed: {e}"
     
     matched_rgb = result['matched_rgb']
     material_matrix = result['material_matrix']
@@ -987,7 +987,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             total_layers = full_matrix.shape[0]
             print(f"[CONVERTER] Fallback successful: {full_matrix.shape} (Z×H×W)")
         except Exception as fallback_error:
-            return None, None, None, f"❌ Voxel matrix generation failed: {fallback_error}"
+            return None, None, None, f"[ERROR] Voxel matrix generation failed: {fallback_error}"
     
     # Step 6: Generate 3D Meshes
     scene = trimesh.Scene()
@@ -1267,7 +1267,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     # Check if scene has any geometry before exporting (Requirement 8.1)
     if len(scene.geometry) == 0:
         print(f"[CONVERTER] Error: No meshes generated, cannot export 3MF")
-        return None, None, None, "❌ Mesh generation failed: No valid meshes generated"
+        return None, None, None, "[ERROR] Mesh generation failed: No valid meshes generated"
     
     try:
         # Use enhanced BambuStudio-compatible 3MF export
@@ -1304,7 +1304,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
         print(f"[CONVERTER] 3MF exported with embedded settings: {out_path}")
     except Exception as e:
         print(f"[CONVERTER] Error exporting 3MF: {e}")
-        return None, None, None, f"❌ 3MF export failed: {e}"
+        return None, None, None, f"[ERROR] 3MF export failed: {e}"
     
     # Step 9: Generate 3D Preview
     preview_mesh = _create_preview_mesh(
@@ -2408,16 +2408,16 @@ def generate_preview_cached(image_path, lut_path, target_width_mm,
         tuple: (preview_image, cache_data, status_message)
     """
     if image_path is None:
-        return None, None, "❌ Please upload an image"
+        return None, None, "[ERROR] Please upload an image"
     if lut_path is None:
-        return None, None, "⚠️ Please select or upload calibration file"
+        return None, None, "[WARNING] Please select or upload calibration file"
     
     if isinstance(lut_path, str):
         actual_lut_path = lut_path
     elif hasattr(lut_path, 'name'):
         actual_lut_path = lut_path.name
     else:
-        return None, None, "❌ Invalid LUT file format"
+        return None, None, "[ERROR] Invalid LUT file format"
 
     # Handle None modeling_mode with default
     if modeling_mode is None:
@@ -2445,7 +2445,7 @@ def generate_preview_cached(image_path, lut_path, target_width_mm,
             smooth_sigma=10
         )
     except Exception as e:
-        return None, None, f"❌ Preview generation failed: {e}"
+        return None, None, f"[ERROR] Preview generation failed: {e}"
     
     matched_rgb = result['matched_rgb']
     material_matrix = result['material_matrix']
@@ -2486,7 +2486,7 @@ def generate_preview_cached(image_path, lut_path, target_width_mm,
     )
     
     num_colors = len(color_palette)
-    return display, cache, f"✅ Preview ({target_w}×{target_h}px, {num_colors} colors) | Click image to place loop"
+    return display, cache, f"[OK] Preview ({target_w}×{target_h}px, {num_colors} colors) | Click image to place loop"
 
 
 def render_preview(preview_rgba, loop_pos, loop_width, loop_length, 
@@ -2867,7 +2867,7 @@ def update_preview_with_backing_color(cache, backing_color_id: int):
         - Requirements 8.4: Returns error message and keeps current preview on failure
     """
     if cache is None:
-        return None, "⚠️ Error: Cache cannot be None"
+        return None, "[WARNING] Error: Cache cannot be None"
     
     try:
         # Validate backing_color_id
@@ -2960,7 +2960,7 @@ def update_preview_with_backing_color(cache, backing_color_id: int):
         print(f"[CONVERTER] Error updating preview with backing color: {e}")
         # Return original preview from cache if available
         original_preview = cache.get('preview_rgba') if cache else None
-        return original_preview, f"⚠️ Preview update failed: {str(e)}. Showing original preview."
+        return original_preview, f"[WARNING] Preview update failed: {str(e)}. Showing original preview."
 
 
 def update_preview_with_replacements(cache, replacement_regions=None,
@@ -3110,13 +3110,13 @@ def generate_highlight_preview(cache, highlight_color: str,
         tuple: (display_image, status_message)
     """
     if cache is None:
-        return None, "❌ 请先生成预览 | Generate preview first"
+        return None, "[ERROR] 请先生成预览 | Generate preview first"
     
     if not highlight_color:
         # No highlight - return normal preview
         preview_rgba = cache.get('preview_rgba')
         if preview_rgba is None:
-            return None, "❌ 缓存数据无效 | Invalid cache"
+            return None, "[ERROR] 缓存数据无效 | Invalid cache"
         
         color_conf = cache['color_conf']
         display = render_preview(
@@ -3128,7 +3128,7 @@ def generate_highlight_preview(cache, highlight_color: str,
             target_width_mm=cache.get('target_width_mm'),
             is_dark=cache.get('is_dark', True)
         )
-        return display, "✅ 预览已恢复 | Preview restored"
+        return display, "[OK] 预览已恢复 | Preview restored"
     # Parse highlight color
     highlight_hex = highlight_color.strip().lower()
     if not highlight_hex.startswith('#'):
@@ -3141,7 +3141,7 @@ def generate_highlight_preview(cache, highlight_color: str,
         b = int(highlight_hex[5:7], 16)
         highlight_rgb = np.array([r, g, b], dtype=np.uint8)
     except (ValueError, IndexError):
-        return None, f"❌ 无效的颜色值 | Invalid color: {highlight_color}"
+        return None, f"[ERROR] 无效的颜色值 | Invalid color: {highlight_color}"
     
     # Get data from cache
     matched_rgb = cache.get('matched_rgb')
@@ -3149,7 +3149,7 @@ def generate_highlight_preview(cache, highlight_color: str,
     color_conf = cache.get('color_conf')
     
     if matched_rgb is None or mask_solid is None:
-        return None, "❌ 缓存数据不完整 | Incomplete cache"
+        return None, "[ERROR] 缓存数据不完整 | Incomplete cache"
     
     target_h, target_w = matched_rgb.shape[:2]
     
@@ -3170,7 +3170,7 @@ def generate_highlight_preview(cache, highlight_color: str,
     total_solid = np.sum(mask_solid)
     
     if highlight_count == 0:
-        return None, f"⚠️ 未找到颜色 {highlight_hex} | Color not found"
+        return None, f"[WARNING] 未找到颜色 {highlight_hex} | Color not found"
     
     highlight_percentage = round(highlight_count / total_solid * 100, 2)
     
@@ -3247,12 +3247,12 @@ def clear_highlight_preview(cache, loop_pos=None, add_loop=False,
     
     if cache is None:
         print("[CLEAR_HIGHLIGHT] Cache is None!")
-        return None, "❌ 请先生成预览 | Generate preview first"
+        return None, "[ERROR] 请先生成预览 | Generate preview first"
     
     preview_rgba = cache.get('preview_rgba')
     if preview_rgba is None:
         print("[CLEAR_HIGHLIGHT] preview_rgba is None!")
-        return None, "❌ 缓存数据无效 | Invalid cache"
+        return None, "[ERROR] 缓存数据无效 | Invalid cache"
     
     print(f"[CLEAR_HIGHLIGHT] preview_rgba shape: {preview_rgba.shape}")
     
@@ -3269,7 +3269,7 @@ def clear_highlight_preview(cache, loop_pos=None, add_loop=False,
     
     print(f"[CLEAR_HIGHLIGHT] display shape: {display.shape if display is not None else None}")
     
-    return display, "✅ 预览已恢复 | Preview restored"
+    return display, "[OK] 预览已恢复 | Preview restored"
 
 
 # [新增] 预览图点击吸取颜色并高亮
@@ -3281,10 +3281,10 @@ def on_preview_click_select_color(cache, evt: gr.SelectData, bed_label=None):
     3. 返回颜色信息给 UI
     """
     if cache is None:
-        return None, "未选择", None, "❌ 请先生成预览"
+        return None, "未选择", None, "[ERROR] 请先生成预览"
 
     if evt is None or evt.index is None:
-        return gr.update(), "未选择", None, "⚠️ 无效点击"
+        return gr.update(), "未选择", None, "[WARNING] 无效点击"
 
     if bed_label is None:
         bed_label = cache.get('bed_label', BedManager.DEFAULT_BED)
@@ -3296,7 +3296,7 @@ def on_preview_click_select_color(cache, evt: gr.SelectData, bed_label=None):
     target_width_mm = cache.get('target_width_mm')
 
     if target_w is None or target_h is None:
-        return gr.update(), "未选择", None, "❌ 缓存数据不完整"
+        return gr.update(), "未选择", None, "[ERROR] 缓存数据不完整"
 
     bed_w_mm, bed_h_mm = BedManager.get_bed_size(bed_label)
     ppm = BedManager.compute_scale(bed_w_mm, bed_h_mm)
@@ -3341,15 +3341,15 @@ def on_preview_click_select_color(cache, evt: gr.SelectData, bed_label=None):
         quantized_image = cache.get('quantized_image')
 
     if matched_rgb is None or mask_solid is None or quantized_image is None:
-        return None, "未选择", None, "❌ 缓存无效"
+        return None, "未选择", None, "[ERROR] 缓存无效"
 
     h, w = matched_rgb.shape[:2]
 
     if not (0 <= orig_x < w and 0 <= orig_y < h):
-        return gr.update(), "未选择", None, f"⚠️ 点击了无效区域 ({orig_x}, {orig_y})"
+        return gr.update(), "未选择", None, f"[WARNING] 点击了无效区域 ({orig_x}, {orig_y})"
 
     if not mask_solid[orig_y, orig_x]:
-        return gr.update(), "未选择", None, "⚠️ 点击了背景区域"
+        return gr.update(), "未选择", None, "[WARNING] 点击了背景区域"
 
     q_rgb = tuple(int(v) for v in quantized_image[orig_y, orig_x])
     m_rgb = tuple(int(v) for v in matched_rgb[orig_y, orig_x])

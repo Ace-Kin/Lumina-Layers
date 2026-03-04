@@ -367,25 +367,25 @@ def detect_installed_slicers():
 def open_in_slicer(file_path, slicer_id):
     """Open a 3MF file in the specified slicer."""
     if not file_path:
-        return "❌ 没有可打开的文件 / No file to open"
+        return "[ERROR] 没有可打开的文件 / No file to open"
     
     actual_path = file_path
     if hasattr(file_path, 'name'):
         actual_path = file_path.name
     
     if not os.path.isfile(actual_path):
-        return f"❌ 文件不存在: {actual_path}"
+        return f"[ERROR] 文件不存在: {actual_path}"
     
     # Find exe from detected slicers
     for sid, name, exe in _INSTALLED_SLICERS:
         if sid == slicer_id:
             try:
                 subprocess.Popen([exe, actual_path])
-                return f"✅ 已在 {name} 中打开"
+                return f"[OK] 已在 {name} 中打开"
             except Exception as e:
-                return f"❌ 启动 {name} 失败: {e}"
+                return f"[ERROR] 启动 {name} 失败: {e}"
     
-    return f"❌ 未找到切片软件: {slicer_id}"
+    return f"[ERROR] 未找到切片软件: {slicer_id}"
 
 
 # Detect slicers at startup
@@ -994,7 +994,7 @@ def process_batch_generation(batch_files, is_batch, single_image, lut_path, targ
         return out_path, glb_path, _preview_update(preview_img), status
 
     if not batch_files:
-        return None, None, None, "❌ 请先上传图片 / Please upload images first"
+        return None, None, None, "[ERROR] 请先上传图片 / Please upload images first"
 
     generated_files = []
     total_files = len(batch_files)
@@ -1032,7 +1032,7 @@ def process_batch_generation(batch_files, is_batch, single_image, lut_path, targ
                 zipf.write(f, os.path.basename(f))
         logs.append(f"✅ Batch done: {len(generated_files)} model(s).")
         return zip_path, None, _preview_update(None), "\n".join(logs)
-    return None, None, _preview_update(None), "❌ Batch failed: no valid models.\n" + "\n".join(logs)
+    return None, None, _preview_update(None), "[ERROR] Batch failed: no valid models.\n" + "\n".join(logs)
 
 
 # ========== Advanced Tab Callbacks ==========
@@ -3416,7 +3416,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
 
     def on_mark_free_color(selected_color, free_set):
         if not selected_color:
-            return free_set, gr.update(), "❌ 请先点击预览图选择一个颜色"
+            return free_set, gr.update(), "[ERROR] 请先点击预览图选择一个颜色"
         new_set = set(free_set) if free_set else set()
         hex_c = selected_color.lower()
         if hex_c in new_set:
@@ -3428,7 +3428,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
         return new_set, _render_free_color_html(new_set), msg
 
     def on_clear_free_colors(free_set):
-        return set(), "", "✅ 已清除所有自由色标记"
+        return set(), "", "[OK] 已清除所有自由色标记"
 
     conv_free_color_btn.click(
         on_mark_free_color,
@@ -4012,7 +4012,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
                 print(f"[AUTO-PREVIEW] Preview generated: {status}")
             except Exception as e:
                 print(f"[AUTO-PREVIEW] Failed to generate preview: {e}")
-                return None, None, None, f"❌ 预览生成失败: {e}"
+                return None, None, None, f"[ERROR] 预览生成失败: {e}"
         
         # Now generate 3MF with the cache
         progress(0.3, desc="生成3MF模型中... | Generating 3MF model...")
@@ -4154,7 +4154,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
                     print(f"[AUTO-SLICER] Preview generated: {status}")
                 except Exception as e:
                     print(f"[AUTO-SLICER] Failed to generate preview: {e}")
-                    return gr.update(), gr.update(), gr.update(), f"❌ 预览生成失败: {e}"
+                    return gr.update(), gr.update(), gr.update(), f"[ERROR] 预览生成失败: {e}"
             
             # Step 2: Generate 3MF model
             print("[AUTO-SLICER] Step 2/2: Generating 3MF model...")
@@ -4173,14 +4173,14 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
                 print(f"[AUTO-SLICER] 3MF generated: {status}")
             except Exception as e:
                 print(f"[AUTO-SLICER] Failed to generate 3MF: {e}")
-                return gr.update(), gr.update(), gr.update(), f"❌ 3MF生成失败: {e}"
+                return gr.update(), gr.update(), gr.update(), f"[ERROR] 3MF生成失败: {e}"
         
         # Now open in slicer or download
         if slicer_id == "download":
             # Make file component visible so user can download
             if file_obj is not None:
                 return file_obj, gr.update(visible=True), gr.update(), "📥 请点击下方文件下载"
-            return None, gr.update(), gr.update(), "❌ 没有可下载的文件"
+            return None, gr.update(), gr.update(), "[ERROR] 没有可下载的文件"
         
         # Get actual file path from Gradio File object
         actual_path = None
@@ -4191,7 +4191,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
                 actual_path = file_obj
         
         if not actual_path:
-            return None, gr.update(), gr.update(), "❌ 生成失败，无法打开"
+            return None, gr.update(), gr.update(), "[ERROR] 生成失败，无法打开"
         
         status = open_in_slicer(actual_path, slicer_id)
         return file_obj, gr.update(), gr.update(), status

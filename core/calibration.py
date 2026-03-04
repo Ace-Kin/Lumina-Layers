@@ -196,7 +196,7 @@ def generate_calibration_board(color_mode: str, block_size_mm: float,
 
     Stats.increment("calibrations")
 
-    return output_path, Image.fromarray(preview_arr), f"✅ 校准板已生成！已组合为一个对象 | 颜色: {', '.join(slot_names)}"
+    return output_path, Image.fromarray(preview_arr), f"[OK] 校准板已生成！已组合为一个对象 | 颜色: {', '.join(slot_names)}"
 
 
 
@@ -447,7 +447,7 @@ def generate_8color_board(page_index=0):
         print(f"[8COLOR] Surface black: {surface_black}/{len(all_stacks)} ({surface_black/len(all_stacks)*100:.2f}%)")
     except Exception as e: 
         print(f"[8COLOR] Error loading data: {e}")
-        return None, None, "❌ Data not found. Run analyze_colors.py first."
+        return None, None, "[ERROR] Data not found. Run analyze_colors.py first."
 
     # 2. Slice Data (1369 per page for 37x37)
     per_page = 1369
@@ -538,7 +538,7 @@ def generate_8color_batch_zip():
     f1, _, _ = generate_8color_board(0)
     f2, _, _ = generate_8color_board(1)
     
-    if not f1 or not f2: return None, None, "❌ Generation failed"
+    if not f1 or not f2: return None, None, "[ERROR] Generation failed"
     
     zip_path = os.path.join(OUTPUT_DIR, generate_calibration_filename("8-Color", "Kit", ".zip"))
     with zipfile.ZipFile(zip_path, 'w') as zf:
@@ -546,7 +546,7 @@ def generate_8color_batch_zip():
         zf.write(f2, os.path.basename(f2))
         
     _, prev, _ = generate_8color_board(0) # Show Page 1 as preview
-    return zip_path, prev, "✅ 8-Color Kit (Page 1 & 2) Generated!"
+    return zip_path, prev, "[OK] 8-Color Kit (Page 1 & 2) Generated!"
 
 
 def generate_bw_calibration_board(block_size_mm=5.0, gap_mm=0.8, backing_color="White"):
