@@ -1057,18 +1057,18 @@ def _update_lut_grid(lut_path, lang, palette_mode="swatch"):
 def _detect_and_enforce_structure(lut_path):
     """Detect color mode from LUT, and enforce structure constraints for 5-Color Extended.
 
-    Returns (color_mode_update, structure_update) for two component outputs.
+    Returns (color_mode_update, structure_update, relief_update) for three component outputs.
     """
     mode = detect_lut_color_mode(lut_path)
     if mode and "5-Color Extended" in mode:
-        gr.Info("5-Color Extended 模式：自动切换为单面模式")
+        gr.Info("5-Color Extended 模式：自动切换为单面模式，2.5D 浮雕不可用")
         return mode, gr.update(
             value=I18n.get('conv_structure_single', 'en'),
             interactive=False,
-        )
+        ), gr.update(value=False, interactive=False)
     if mode:
-        return mode, gr.update(interactive=True)
-    return gr.update(), gr.update(interactive=True)
+        return mode, gr.update(interactive=True), gr.update(interactive=True)
+    return gr.update(), gr.update(interactive=True), gr.update(interactive=True)
 
 
 def create_app():
@@ -1426,7 +1426,7 @@ console.log('[CROP] Global scripts loaded, openCropModal:', typeof window.openCr
         ).then(
             fn=_detect_and_enforce_structure,
             inputs=[components['state_conv_lut_path']],
-            outputs=[components['radio_conv_color_mode'], components['radio_conv_structure']]
+            outputs=[components['radio_conv_color_mode'], components['radio_conv_structure'], components['checkbox_conv_relief_mode']]
         )
 
         # Settings: cache clearing and counter reset
@@ -3004,7 +3004,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
     ).then(
             fn=_detect_and_enforce_structure,
             inputs=[conv_lut_path],
-            outputs=[components['radio_conv_color_mode'], components['radio_conv_structure']]
+            outputs=[components['radio_conv_color_mode'], components['radio_conv_structure'], components['checkbox_conv_relief_mode']]
     )
 
 
@@ -3021,7 +3021,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
     ).then(
             fn=lambda lut_file: _detect_and_enforce_structure(lut_file.name if lut_file else None),
             inputs=[conv_lut_upload],
-            outputs=[components['radio_conv_color_mode'], components['radio_conv_structure']]
+            outputs=[components['radio_conv_color_mode'], components['radio_conv_structure'], components['checkbox_conv_relief_mode']]
     )
     
     components['image_conv_image_label'].change(
@@ -3157,18 +3157,20 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
     )
 
     def _on_color_mode_update_structure(color_mode):
-        """5-Color Extended requires single-sided face-up (max 4 materials per Z layer)."""
+        """5-Color Extended requires single-sided face-up (max 4 materials per Z layer).
+        Also disables 2.5D relief mode which is incompatible with 5-Color Extended.
+        """
         if color_mode and "5-Color Extended" in color_mode:
             return gr.update(
                 value=I18n.get('conv_structure_single', 'en'),
                 interactive=False,
-            )
-        return gr.update(interactive=True)
+            ), gr.update(value=False, interactive=False)
+        return gr.update(interactive=True), gr.update(interactive=True)
 
     components['radio_conv_color_mode'].change(
         fn=_on_color_mode_update_structure,
         inputs=[components['radio_conv_color_mode']],
-        outputs=[components['radio_conv_structure']],
+        outputs=[components['radio_conv_structure'], components['checkbox_conv_relief_mode']],
     )
 
     preview_event = components['btn_conv_preview_btn'].click(
