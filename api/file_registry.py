@@ -63,3 +63,18 @@ class FileRegistry:
             for fid in to_remove:
                 self._registry.pop(fid, None)
         return len(to_remove)
+
+    def clear_all(self) -> int:
+        """清除所有注册文件并删除磁盘文件，返回清理数量。"""
+        with self._lock:
+            count = 0
+            for fid, entry in list(self._registry.items()):
+                path = entry.get("path")
+                if path and os.path.exists(path):
+                    try:
+                        os.remove(path)
+                        count += 1
+                    except OSError:
+                        pass
+                self._registry.pop(fid, None)
+            return count

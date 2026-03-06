@@ -33,6 +33,11 @@ from api.schemas.lut import (
     MergeResponse,
     MergeStats,
 )
+from api.schemas.system import (
+    CacheCleanupDetails,
+    ClearCacheResponse,
+    ClearCacheResult,
+)
 from api.schemas.responses import (
     BatchItemResult,
     BatchResponse,
@@ -75,6 +80,10 @@ __all__ = [
     "MergeResponse",
     "MergeStats",
     "LutInfoResponse",
+    # --- System models ---
+    "CacheCleanupDetails",
+    "ClearCacheResponse",
+    "ClearCacheResult",
     # --- Response models ---
     "CalibrationResponse",
     "PreviewResponse",

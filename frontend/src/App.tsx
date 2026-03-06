@@ -8,6 +8,7 @@ import CalibrationPanel from "./components/CalibrationPanel";
 import ExtractorPanel from "./components/ExtractorPanel";
 import ExtractorCanvas from "./components/ExtractorCanvas";
 import LutManagerPanel from "./components/LutManagerPanel";
+import AboutView from "./components/AboutView";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { useActiveModelUrl } from "./hooks/useActiveModelUrl";
 
@@ -44,7 +45,7 @@ class SceneErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryStat
 
 function App() {
   const [connected, setConnected] = useState<boolean | null>(null);
-  const [activeTab, setActiveTab] = useState<"converter" | "calibration" | "extractor" | "lut-manager">("converter");
+  const [activeTab, setActiveTab] = useState<"converter" | "calibration" | "extractor" | "lut-manager" | "about">("converter");
   const modelUrl = useActiveModelUrl(activeTab);
 
   useEffect(() => {
@@ -118,6 +119,20 @@ function App() {
           >
             LUT Manager
           </button>
+          <button
+            role="tab"
+            data-testid="tab-about"
+            aria-current={activeTab === "about" ? "page" : undefined}
+            aria-selected={activeTab === "about"}
+            className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
+              activeTab === "about"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            }`}
+            onClick={() => setActiveTab("about")}
+          >
+            About
+          </button>
         </nav>
 
         {connected === null ? (
@@ -149,11 +164,14 @@ function App() {
           <CalibrationPanel />
         ) : activeTab === "lut-manager" ? (
           <LutManagerPanel />
+        ) : activeTab === "about" ? (
+          <AboutView />
         ) : (
           <ExtractorPanel />
         )}
 
-        {/* Right area */}
+        {/* Right area – hidden when About tab is active */}
+        {activeTab !== "about" && (
         <section data-testid="canvas-area" className="flex-1 relative">
           {activeTab === "extractor" ? (
             <ExtractorCanvas />
@@ -171,6 +189,7 @@ function App() {
             </SceneErrorBoundary>
           )}
         </section>
+        )}
       </main>
     </div>
   );

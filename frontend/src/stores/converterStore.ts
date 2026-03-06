@@ -4,6 +4,9 @@ import type {
   ModelingMode,
   StructureMode,
   ColorReplacementItem,
+  BedSizeItem,
+  PaletteEntry,
+  AutoHeightMode,
 } from "../api/types";
 import {
   ColorMode as ColorModeEnum,
@@ -14,7 +17,15 @@ import {
   fetchLutList as apiFetchLutList,
   convertPreview as apiConvertPreview,
   convertGenerate as apiConvertGenerate,
+  fetchBedSizes as apiFetchBedSizes,
+  uploadHeightmap as apiUploadHeightmap,
+  fetchLutColors as apiFetchLutColors,
 } from "../api/converter";
+import type { LutColorEntry } from "../api/types";
+import {
+  computeAutoHeightMap,
+  colorRemapToReplacementRegions,
+} from "../utils/colorUtils";
 
 // ========== Helpers ==========
 
@@ -87,6 +98,22 @@ export interface ConverterState {
   replacement_regions: ColorReplacementItem[];
   free_color_set: Set<string>;
 
+  // 调色板与选择
+  selectedColor: string | null;
+  palette: PaletteEntry[];
+
+  // 颜色替换映射（纯前端）
+  colorRemapMap: Record<string, string>;
+  remapHistory: Record<string, string>[];
+
+  // 浮雕联动
+  autoHeightMode: AutoHeightMode;
+  heightmapFile: File | null;
+  heightmapThumbnailUrl: string | null;
+
+  // 3D 预览
+  previewGlbUrl: string | null;
+
   // UI 状态
   isLoading: boolean;
   error: string | null;
@@ -96,6 +123,15 @@ export interface ConverterState {
   // LUT 列表
   lutList: string[];
   lutListLoading: boolean;
+
+  // LUT 全部颜色
+  lutColors: LutColorEntry[];
+  lutColorsLoading: boolean;
+
+  // 热床尺寸
+  bed_label: string;
+  bedSizes: BedSizeItem[];
+  bedSizesLoading: boolean;
 }
 
 // ========== Actions Interface ==========
@@ -132,8 +168,34 @@ export interface ConverterActions {
   setEnableCoating: (enabled: boolean) => void;
   setCoatingHeightMm: (height: number) => void;
 
+  // 热床尺寸
+  setBedLabel: (label: string) => void;
+  fetchBedSizes: () => Promise<void>;
+
+  // 调色板与选择
+  setSelectedColor: (hex: string | null) => void;
+  setPalette: (entries: PaletteEntry[]) => void;
+
+  // 颜色替换（纯前端）
+  applyColorRemap: (origHex: string, newHex: string) => void;
+  undoColorRemap: () => void;
+  clearAllRemaps: () => void;
+
+  // 浮雕高度
+  updateColorHeight: (hex: string, heightMm: number) => void;
+  applyAutoHeight: (mode: 'darker-higher' | 'lighter-higher') => void;
+  setAutoHeightMode: (mode: AutoHeightMode) => void;
+
+  // 高度图
+  setHeightmapFile: (file: File | null) => void;
+  uploadHeightmap: () => Promise<void>;
+
+  // GLB 预览
+  setPreviewGlbUrl: (url: string | null) => void;
+
   // API 操作
   fetchLutList: () => Promise<void>;
+  fetchLutColors: (lutName: string) => Promise<void>;
   submitPreview: () => Promise<void>;
   submitGenerate: () => Promise<string | null>;
 
@@ -178,12 +240,25 @@ const DEFAULT_STATE: ConverterState = {
   coating_height_mm: 0.08,
   replacement_regions: [],
   free_color_set: new Set(),
+  selectedColor: null,
+  palette: [],
+  colorRemapMap: {},
+  remapHistory: [],
+  autoHeightMode: 'darker-higher' as AutoHeightMode,
+  heightmapFile: null,
+  heightmapThumbnailUrl: null,
+  previewGlbUrl: null,
   isLoading: false,
   error: null,
   previewImageUrl: null,
   modelUrl: null,
   lutList: [],
   lutListLoading: false,
+  lutColors: [],
+  lutColorsLoading: false,
+  bed_label: "256×256 mm",
+  bedSizes: [],
+  bedSizesLoading: false,
 };
 
 // ========== Store ==========
@@ -280,10 +355,23 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
 
     // --- 浮雕（互斥） ---
     setEnableRelief: (enabled: boolean) =>
-      set((state) => ({
-        enable_relief: enabled,
-        enable_cloisonne: enabled ? false : state.enable_cloisonne,
-      })),
+      set((state) => {
+        const updates: Partial<ConverterState> = {
+          enable_relief: enabled,
+          enable_cloisonne: enabled ? false : state.enable_cloisonne,
+        };
+        // Requirement 5.5: 当 enable_relief 从 false 切换为 true 时，
+        // 为 palette 中每个颜色初始化默认高度值（heightmap_max_height 的 50%）
+        if (enabled && !state.enable_relief && state.palette.length > 0) {
+          const defaultHeight = state.heightmap_max_height * 0.5;
+          const initMap: Record<string, number> = {};
+          for (const entry of state.palette) {
+            initMap[entry.matched_hex] = defaultHeight;
+          }
+          updates.color_height_map = initMap;
+        }
+        return updates;
+      }),
     setColorHeightMap: (map: Record<string, number>) =>
       set({ color_height_map: map }),
     setHeightmapMaxHeight: (height: number) =>
@@ -310,6 +398,103 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
     setCoatingHeightMm: (height: number) =>
       set({ coating_height_mm: clampValue(height, 0.04, 0.12) }),
 
+    // --- 热床尺寸 ---
+    setBedLabel: (label: string) => {
+      set({ bed_label: label });
+    },
+
+    // --- 调色板与选择 ---
+    setSelectedColor: (hex: string | null) => set({ selectedColor: hex }),
+    setPalette: (entries: PaletteEntry[]) => set({ palette: entries }),
+
+    // --- 颜色替换（纯前端） ---
+    applyColorRemap: (origHex: string, newHex: string) => {
+      const state = _get();
+      // 推入当前快照到 history
+      const snapshot = { ...state.colorRemapMap };
+      const newHistory = [...state.remapHistory, snapshot];
+      // 更新 map
+      const newMap = { ...state.colorRemapMap, [origHex]: newHex };
+      set({ colorRemapMap: newMap, remapHistory: newHistory });
+    },
+
+    undoColorRemap: () => {
+      const state = _get();
+      if (state.remapHistory.length === 0) return;
+      const newHistory = [...state.remapHistory];
+      const previousMap = newHistory.pop()!;
+      set({ colorRemapMap: previousMap, remapHistory: newHistory });
+    },
+
+    clearAllRemaps: () => {
+      set({ colorRemapMap: {}, remapHistory: [] });
+    },
+
+    // --- 浮雕高度 ---
+    updateColorHeight: (hex: string, heightMm: number) => {
+      const state = _get();
+      set({
+        color_height_map: { ...state.color_height_map, [hex]: heightMm },
+      });
+    },
+
+    applyAutoHeight: (mode: 'darker-higher' | 'lighter-higher') => {
+      const state = _get();
+      const heightMap = computeAutoHeightMap(
+        state.palette,
+        mode,
+        state.heightmap_max_height,
+      );
+      set({ color_height_map: heightMap });
+    },
+
+    setAutoHeightMode: (mode: AutoHeightMode) => set({ autoHeightMode: mode }),
+
+    // --- 高度图 ---
+    setHeightmapFile: (file: File | null) => set({ heightmapFile: file }),
+
+    uploadHeightmap: async () => {
+      const state = _get();
+      if (!state.heightmapFile || !state.sessionId) {
+        set({ error: "请先上传高度图文件并完成预览" });
+        return;
+      }
+      set({ isLoading: true, error: null });
+      try {
+        const response = await apiUploadHeightmap(
+          state.heightmapFile,
+          state.sessionId,
+        );
+        const thumbnailUrl = `http://localhost:8000${response.thumbnail_url}`;
+        set({
+          isLoading: false,
+          heightmapThumbnailUrl: thumbnailUrl,
+          color_height_map: response.color_height_map,
+        });
+      } catch (err) {
+        set({
+          isLoading: false,
+          error: err instanceof Error ? err.message : "高度图上传失败",
+        });
+      }
+    },
+
+    // --- GLB 预览 ---
+    setPreviewGlbUrl: (url: string | null) => set({ previewGlbUrl: url }),
+
+    fetchBedSizes: async () => {
+      set({ bedSizesLoading: true });
+      try {
+        const response = await apiFetchBedSizes();
+        set({ bedSizes: response.beds, bedSizesLoading: false });
+      } catch (err) {
+        set({
+          bedSizesLoading: false,
+          error: err instanceof Error ? err.message : "热床尺寸列表加载失败",
+        });
+      }
+    },
+
     // --- API 操作 ---
     fetchLutList: async () => {
       set({ lutListLoading: true });
@@ -320,6 +505,23 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
         set({
           lutListLoading: false,
           error: err instanceof Error ? err.message : "LUT 列表加载失败",
+        });
+      }
+    },
+
+    fetchLutColors: async (lutName: string) => {
+      if (!lutName) {
+        set({ lutColors: [] });
+        return;
+      }
+      set({ lutColorsLoading: true });
+      try {
+        const response = await apiFetchLutColors(lutName);
+        set({ lutColors: response.colors, lutColorsLoading: false });
+      } catch (err) {
+        set({
+          lutColorsLoading: false,
+          error: err instanceof Error ? err.message : "LUT 颜色加载失败",
         });
       }
     },
@@ -348,10 +550,21 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
         });
         // 后端返回 JSON，preview_url 是相对路径如 /api/files/xxx
         const previewUrl = `http://localhost:8000${response.preview_url}`;
+        const glbUrl = response.preview_glb_url
+          ? `http://localhost:8000${response.preview_glb_url}`
+          : null;
+        // Normalize palette hex values: strip leading '#' for frontend consistency
+        const normalizedPalette = (response.palette ?? []).map((e) => ({
+          ...e,
+          quantized_hex: e.quantized_hex.replace(/^#/, ""),
+          matched_hex: e.matched_hex.replace(/^#/, ""),
+        }));
         set({
           isLoading: false,
           sessionId: response.session_id,
           previewImageUrl: previewUrl,
+          palette: normalizedPalette,
+          previewGlbUrl: glbUrl,
         });
       } catch (err) {
         set({
@@ -367,8 +580,36 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
         set({ error: "请先预览图片" });
         return null;
       }
+      // Requirement 10.4: enable_relief 为 true 且 color_height_map 为空时阻止生成
+      if (state.enable_relief && Object.keys(state.color_height_map).length === 0) {
+        // Requirement 10.3: 高度图模式时给出更具体的提示
+        if (state.autoHeightMode === 'use-heightmap') {
+          set({ error: "请先上传高度图并获取高度映射后再生成" });
+        } else {
+          set({ error: "请先设置颜色高度映射后再生成" });
+        }
+        return null;
+      }
+
       set({ isLoading: true, error: null });
       try {
+        // 合并 colorRemapMap 转换的 replacement_regions 与已有的 replacement_regions
+        let mergedReplacements: ColorReplacementItem[] | undefined =
+          state.replacement_regions.length > 0
+            ? [...state.replacement_regions]
+            : undefined;
+
+        if (Object.keys(state.colorRemapMap).length > 0) {
+          const remapRegions = colorRemapToReplacementRegions(
+            state.colorRemapMap,
+            state.palette,
+          );
+          mergedReplacements = [
+            ...(mergedReplacements ?? []),
+            ...remapRegions,
+          ];
+        }
+
         const response = await apiConvertGenerate(state.sessionId, {
           lut_name: state.lut_name,
           target_width_mm: state.target_width_mm,
@@ -396,8 +637,8 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
           enable_coating: state.enable_coating,
           coating_height_mm: state.coating_height_mm,
           replacement_regions:
-            state.replacement_regions.length > 0
-              ? state.replacement_regions
+            mergedReplacements && mergedReplacements.length > 0
+              ? mergedReplacements
               : undefined,
           free_color_set:
             state.free_color_set.size > 0

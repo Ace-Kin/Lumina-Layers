@@ -67,6 +67,29 @@ export interface ColorReplacementItem {
   replacement_hex: string;
 }
 
+// ========== Palette & Height Types ==========
+
+/** 调色板条目：量化原色、LUT 匹配色、像素统计 */
+export interface PaletteEntry {
+  quantized_hex: string;   // 量化原色
+  matched_hex: string;     // LUT 匹配色
+  pixel_count: number;     // 像素数量
+  percentage: number;      // 占比百分比
+}
+
+/** 自动高度分配模式 */
+export type AutoHeightMode = 'darker-higher' | 'lighter-higher' | 'use-heightmap';
+
+/** 高度图上传响应 */
+export interface HeightmapUploadResponse {
+  status: string;
+  message: string;
+  thumbnail_url: string;
+  original_size: [number, number];
+  color_height_map: Record<string, number>;
+  warnings: string[];
+}
+
 // ========== Response Models ==========
 
 /** 预览接口响应，包含 session_id 和预览图 URL */
@@ -75,7 +98,8 @@ export interface PreviewResponse {
   status: string;
   message: string;
   preview_url: string;
-  palette: Record<string, unknown>[];
+  preview_glb_url: string | null;  // GLB 3D 预览 URL
+  palette: PaletteEntry[];
   dimensions: { width: number; height: number };
 }
 
@@ -95,6 +119,17 @@ export interface LutInfo {
   name: string;
   color_mode: ColorMode;
   path: string;
+}
+
+export interface BedSizeItem {
+  label: string;
+  width_mm: number;
+  height_mm: number;
+  is_default: boolean;
+}
+
+export interface BedSizeListResponse {
+  beds: BedSizeItem[];
 }
 
 // ========== Calibration Enums ==========
@@ -190,4 +225,31 @@ export interface MergeResponse {
   message: string;
   filename: string;
   stats: MergeStats;
+}
+
+// ========== System Models ==========
+
+export interface ClearCacheResponse {
+  status: string;
+  message: string;
+  deleted_files: number;
+  freed_bytes: number;
+  details: {
+    registry_cleaned: number;
+    sessions_cleaned: number;
+    output_files_cleaned: number;
+  };
+}
+
+// ========== LUT Color Types ==========
+
+export interface LutColorEntry {
+  hex: string;
+  rgb: [number, number, number];
+}
+
+export interface LutColorsResponse {
+  lut_name: string;
+  total: number;
+  colors: LutColorEntry[];
 }

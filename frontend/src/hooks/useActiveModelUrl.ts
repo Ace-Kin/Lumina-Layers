@@ -6,10 +6,10 @@ import { useCalibrationStore } from "../stores/calibrationStore";
  *
  * 规则：
  * - 当 activeTab 为 "calibration" 且 calibrationModelUrl 非空时，返回 calibrationModelUrl
- * - 否则返回 converterModelUrl（保持画布不清空）
+ * - 否则返回 converterModelUrl（热床由 BedPlatform 组件独立渲染）
  */
 export function useActiveModelUrl(
-  activeTab: "converter" | "calibration" | "extractor"
+  activeTab: "converter" | "calibration" | "extractor" | "lut-manager" | "about"
 ): string | null {
   const converterModelUrl = useConverterStore((s) => s.modelUrl);
   const calibrationModelUrl = useCalibrationStore((s) => s.modelUrl);

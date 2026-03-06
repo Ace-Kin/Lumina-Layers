@@ -1,5 +1,6 @@
 import { useConverterStore } from "../../stores/converterStore";
 import Button from "../ui/Button";
+import BedSizeSelector from "./BedSizeSelector";
 
 export default function ActionBar() {
   const imageFile = useConverterStore((s) => s.imageFile);
@@ -38,6 +39,8 @@ export default function ActionBar() {
       {error && (
         <div className="text-xs text-red-400">{error}</div>
       )}
+
+      <BedSizeSelector />
 
       {previewImageUrl && (
         <img

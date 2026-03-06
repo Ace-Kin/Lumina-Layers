@@ -362,3 +362,36 @@ class ColorMergePreviewRequest(BaseModel):
     merge_max_distance: int = Field(
         20, ge=5, le=50, description="最大合并距离 (px)"
     )
+
+
+class BedSizeItem(BaseModel):
+    """A single printer bed size option.
+    单个打印热床尺寸选项。
+
+    Attributes:
+        label: Display label for the bed size, e.g. "256×256 mm".
+            热床尺寸显示标签。
+        width_mm: Bed width in millimeters.
+            热床宽度 (mm)。
+        height_mm: Bed height in millimeters.
+            热床高度 (mm)。
+        is_default: Whether this is the default bed size.
+            是否为默认热床尺寸。
+    """
+
+    label: str = Field(..., description="热床尺寸标签")
+    width_mm: int = Field(..., description="热床宽度 (mm)")
+    height_mm: int = Field(..., description="热床高度 (mm)")
+    is_default: bool = Field(False, description="是否为默认热床尺寸")
+
+
+class BedSizeListResponse(BaseModel):
+    """Response model for the bed size list endpoint.
+    热床尺寸列表响应模型。
+
+    Attributes:
+        beds: List of all available bed size options.
+            所有可用的热床尺寸选项列表。
+    """
+
+    beds: List[BedSizeItem] = Field(..., description="热床尺寸列表")

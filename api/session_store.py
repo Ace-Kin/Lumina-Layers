@@ -78,6 +78,14 @@ class SessionStore:
         self._timestamps.pop(session_id, None)
         self._temp_files.pop(session_id, None)
 
+    def clear_all(self) -> int:
+        """清除所有会话及其临时文件，返回清理的会话数量。"""
+        with self._lock:
+            count = len(self._store)
+            for sid in list(self._store.keys()):
+                self._remove_session(sid)
+            return count
+
     def exists(self, session_id: str) -> bool:
         """检查 session 是否存在。"""
         with self._lock:

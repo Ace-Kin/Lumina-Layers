@@ -25,6 +25,7 @@ from api.routers import (
     extractor_router,
     health_router,
     lut_router,
+    system_router,
 )
 
 
@@ -52,6 +53,7 @@ def create_app() -> FastAPI:
     app.include_router(calibration_router)
     app.include_router(health_router)
     app.include_router(lut_router)
+    app.include_router(system_router)
 
     @app.get("/api/files/{file_id}")
     def serve_file(file_id: str):

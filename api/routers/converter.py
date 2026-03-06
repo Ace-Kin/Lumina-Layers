@@ -18,6 +18,8 @@ from api.dependencies import get_file_registry, get_session_store
 from api.file_bridge import ndarray_to_png_bytes, pil_to_png_bytes, upload_to_tempfile
 from api.file_registry import FileRegistry
 from api.schemas.converter import (
+    BedSizeItem,
+    BedSizeListResponse,
     ColorMergePreviewRequest,
     ColorReplaceRequest,
     ConvertGenerateRequest,
@@ -27,14 +29,16 @@ from api.schemas.responses import (
     BatchResponse,
     ColorReplaceResponse,
     GenerateResponse,
+    HeightmapUploadResponse,
     MergePreviewResponse,
     PreviewResponse,
 )
 from api.session_store import SessionStore
 from core.color_merger import ColorMerger
 from core.color_replacement import ColorReplacementManager
-from core.converter import convert_image_to_3d, extract_color_palette, generate_final_model, generate_preview_cached
-from config import ModelingMode as CoreModelingMode
+from core.converter import convert_image_to_3d, extract_color_palette, generate_empty_bed_glb, generate_final_model, generate_preview_cached, generate_segmented_glb
+from config import BedManager, ModelingMode as CoreModelingMode, PrinterConfig
+from core.heightmap_loader import HeightmapLoader
 from utils.lut_manager import LUTManager
 
 router = APIRouter(prefix="/api/convert", tags=["Converter"])
@@ -76,6 +80,50 @@ def _image_to_png_bytes(img: object) -> bytes:
     if isinstance(img, Image.Image):
         return pil_to_png_bytes(img)
     raise TypeError(f"Unsupported image type: {type(img)}")
+
+
+@router.get("/bed-sizes", response_model=BedSizeListResponse)
+def get_bed_sizes() -> BedSizeListResponse:
+    """Return all available printer bed sizes.
+    返回所有可用的打印热床尺寸列表。
+    """
+    beds = [
+        BedSizeItem(
+            label=label,
+            width_mm=w,
+            height_mm=h,
+            is_default=(label == BedManager.DEFAULT_BED),
+        )
+        for label, w, h in BedManager.BEDS
+    ]
+    return BedSizeListResponse(beds=beds)
+
+
+@router.get("/bed-preview")
+def get_bed_preview(
+    bed_label: str = BedManager.DEFAULT_BED,
+    registry: FileRegistry = Depends(get_file_registry),
+) -> dict:
+    """Generate a GLB preview of the empty print bed.
+    生成空热床的 GLB 3D 预览。
+
+    Args:
+        bed_label: Bed size label (e.g. "256×256 mm"). (热床尺寸标签)
+
+    Returns:
+        dict: Contains preview_3d_url pointing to the GLB file. (包含 GLB 文件 URL)
+    """
+    bed_w, bed_h = BedManager.get_bed_size(bed_label)
+    try:
+        glb_path = generate_empty_bed_glb(bed_w, bed_h)
+    except Exception as e:
+        _handle_core_error(e, "Bed preview generation")
+
+    if glb_path is None:
+        raise HTTPException(status_code=500, detail="Failed to generate bed preview")
+
+    glb_id = registry.register_path("bed-preview", glb_path)
+    return {"preview_3d_url": f"/api/files/{glb_id}"}
 
 
 @router.post("/preview")
@@ -137,8 +185,53 @@ async def convert_preview(
     preview_bytes = _image_to_png_bytes(preview_img)
     preview_id = registry.register_bytes(session_id, preview_bytes, "preview.png")
 
-    # Extract palette and dimensions from cache
-    palette = cache_data.get("color_palette", []) if cache_data else []
+    # Generate segmented GLB (one Mesh per color)
+    preview_glb_url: str | None = None
+    try:
+        glb_path = generate_segmented_glb(cache_data)
+        if glb_path and os.path.exists(glb_path):
+            glb_id = registry.register_path(session_id, glb_path)
+            preview_glb_url = f"/api/files/{glb_id}"
+    except Exception as e:
+        # Non-fatal: log and continue without GLB
+        print(f"[API] Segmented GLB generation failed (non-fatal): {e}")
+
+    # Build palette with quantized_hex, matched_hex, pixel_count, percentage
+    raw_palette: list[dict] = cache_data.get("color_palette", []) if cache_data else []
+    quantized_image = cache_data.get("quantized_image") if cache_data else None
+    matched_rgb_arr = cache_data.get("matched_rgb") if cache_data else None
+    mask_solid_arr = cache_data.get("mask_solid") if cache_data else None
+
+    palette: list[dict] = []
+    if raw_palette and matched_rgb_arr is not None and mask_solid_arr is not None:
+        # Build a matched_hex -> quantized_hex lookup from pixel data
+        matched_to_quantized: dict[str, str] = {}
+        if quantized_image is not None:
+            solid_mask = mask_solid_arr
+            q_pixels = quantized_image[solid_mask]   # (N, 3)
+            m_pixels = matched_rgb_arr[solid_mask]    # (N, 3)
+            # For each matched color, find the most common quantized color
+            for entry in raw_palette:
+                m_hex = entry["hex"]  # '#rrggbb'
+                m_rgb = entry["color"]  # (R, G, B)
+                color_mask = np.all(m_pixels == np.array(m_rgb, dtype=np.uint8), axis=1)
+                if np.any(color_mask):
+                    q_subset = q_pixels[color_mask]
+                    unique_q, q_counts = np.unique(q_subset, axis=0, return_counts=True)
+                    dominant_q = unique_q[np.argmax(q_counts)]
+                    r, g, b = int(dominant_q[0]), int(dominant_q[1]), int(dominant_q[2])
+                    matched_to_quantized[m_hex] = f"#{r:02x}{g:02x}{b:02x}"
+
+        for entry in raw_palette:
+            m_hex = entry["hex"]  # '#rrggbb'
+            q_hex = matched_to_quantized.get(m_hex, m_hex)
+            palette.append({
+                "quantized_hex": q_hex,
+                "matched_hex": m_hex,
+                "pixel_count": entry["count"],
+                "percentage": entry["percentage"],
+            })
+
     dimensions = {}
     if cache_data:
         dimensions = {
@@ -151,8 +244,119 @@ async def convert_preview(
         status="ok",
         message=status_msg or "Preview generated",
         preview_url=f"/api/files/{preview_id}",
+        preview_glb_url=preview_glb_url,
         palette=palette,
         dimensions=dimensions,
+    )
+
+
+@router.post("/upload-heightmap")
+async def upload_heightmap(
+    heightmap: UploadFile = File(..., description="高度图文件"),
+    session_id: str = Form(..., description="Session ID"),
+    max_relief_height: float = Form(2.0, description="最大浮雕高度 (mm)"),
+    store: SessionStore = Depends(get_session_store),
+    registry: FileRegistry = Depends(get_file_registry),
+) -> HeightmapUploadResponse:
+    """上传高度图并计算基于高度图的 color_height_map。
+
+    根据高度图灰度值和 preview_cache 中的颜色匹配数据，
+    计算每个调色板颜色对应区域的平均高度。
+
+    Args:
+        heightmap: 高度图图像文件
+        session_id: 会话 ID
+        max_relief_height: 最大浮雕高度 (mm)
+        store: SessionStore 依赖
+        registry: FileRegistry 依赖
+
+    Returns:
+        HeightmapUploadResponse: 包含 color_height_map 和缩略图 URL
+    """
+    # 1. Validate session
+    session_data = _require_session(store, session_id)
+
+    # 2. Validate preview_cache exists
+    cache = _require_preview_cache(session_data)
+
+    # 3. Read uploaded file and save to temp
+    temp_path = await upload_to_tempfile(heightmap)
+    store.register_temp_file(session_id, temp_path)
+
+    # 4. Load and validate heightmap using HeightmapLoader
+    result = HeightmapLoader.load_and_validate(temp_path)
+    if not result["success"]:
+        raise HTTPException(
+            status_code=422,
+            detail=result["error"] or "Invalid heightmap file",
+        )
+
+    grayscale: np.ndarray = result["grayscale"]
+    original_size: tuple[int, int] = result["original_size"]  # (w, h)
+    thumbnail: np.ndarray | None = result["thumbnail"]
+    warnings: list[str] = list(result["warnings"])
+
+    # 5. Check aspect ratio vs original image
+    matched_rgb: np.ndarray = cache["matched_rgb"]
+    target_h, target_w = matched_rgb.shape[:2]
+    hm_w, hm_h = original_size
+
+    ar_warning = HeightmapLoader._check_aspect_ratio(hm_w, hm_h, target_w, target_h)
+    if ar_warning:
+        warnings.append(ar_warning)
+
+    # 6. Resize heightmap to match target dimensions
+    grayscale_resized = HeightmapLoader._resize_to_target(grayscale, target_w, target_h)
+
+    # 7. Compute per-color average height from heightmap
+    base_thickness: float = PrinterConfig.LAYER_HEIGHT  # 0.08mm
+    mask_solid: np.ndarray | None = cache.get("mask_solid")
+
+    color_height_map: dict[str, float] = {}
+    palette_data: list[dict] = cache.get("color_palette", [])
+
+    for entry in palette_data:
+        color_rgb = np.array(entry["color"], dtype=np.uint8)  # (3,)
+        hex_val: str = entry["hex"]  # '#rrggbb'
+        hex_key = hex_val.lstrip("#").lower()
+
+        # Find pixels matching this color in matched_rgb
+        color_mask = np.all(matched_rgb == color_rgb, axis=2)  # (H, W) bool
+        if mask_solid is not None:
+            color_mask = color_mask & mask_solid
+
+        if not np.any(color_mask):
+            # No pixels for this color, assign base thickness
+            color_height_map[hex_key] = base_thickness
+            continue
+
+        # Average grayscale value at matching pixel positions
+        avg_gray = float(np.mean(grayscale_resized[color_mask]))
+
+        # Map to height range [base_thickness, max_relief_height]
+        height = base_thickness + (avg_gray / 255.0) * (max_relief_height - base_thickness)
+        color_height_map[hex_key] = round(height, 4)
+
+    # 8. Store heightmap data in session
+    store.put(session_id, "heightmap_grayscale", grayscale_resized)
+    store.put(session_id, "heightmap_original_size", original_size)
+    store.put(session_id, "heightmap_max_relief_height", max_relief_height)
+    store.put(session_id, "heightmap_color_height_map", color_height_map)
+
+    # 9. Register thumbnail in FileRegistry
+    thumbnail_url = ""
+    if thumbnail is not None:
+        thumb_bytes = ndarray_to_png_bytes(thumbnail)
+        thumb_id = registry.register_bytes(session_id, thumb_bytes, "heightmap_thumb.png")
+        thumbnail_url = f"/api/files/{thumb_id}"
+
+    return HeightmapUploadResponse(
+        status="ok",
+        message="Heightmap uploaded and processed",
+        thumbnail_url=thumbnail_url,
+        original_size=original_size,
+        color_height_map=color_height_map,
+        warnings=warnings,
     )
 
 

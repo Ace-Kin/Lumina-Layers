@@ -26,6 +26,7 @@ class PreviewResponse(BaseModel):
     status: str
     message: str
     preview_url: str
+    preview_glb_url: Optional[str] = None
     palette: list[dict]
     dimensions: dict
 
@@ -116,3 +117,29 @@ class ManualFixResponse(BaseModel):
     status: str
     message: str
     lut_preview_url: str
+
+
+class HeightmapUploadResponse(BaseModel):
+    """高度图上传响应。"""
+
+    status: str
+    message: str
+    thumbnail_url: str
+    original_size: tuple[int, int]
+    color_height_map: dict[str, float]
+    warnings: list[str]
+
+
+class LutColorEntry(BaseModel):
+    """单个 LUT 颜色条目。"""
+
+    hex: str
+    rgb: tuple[int, int, int]
+
+
+class LutColorsResponse(BaseModel):
+    """LUT 颜色列表响应。"""
+
+    lut_name: str
+    total: int
+    colors: list[LutColorEntry]

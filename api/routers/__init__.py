@@ -13,6 +13,7 @@ from api.routers.converter import router as converter_router
 from api.routers.extractor import router as extractor_router
 from api.routers.health import router as health_router
 from api.routers.lut import router as lut_router
+from api.routers.system import router as system_router
 
 __all__ = [
     "converter_router",
@@ -20,4 +21,5 @@ __all__ = [
     "calibration_router",
     "health_router",
     "lut_router",
+    "system_router",
 ]

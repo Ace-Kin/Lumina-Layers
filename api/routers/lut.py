@@ -16,7 +16,7 @@ from api.schemas.lut import (
     MergeResponse,
     MergeStats,
 )
-from api.schemas.responses import LUTListResponse, LutInfo
+from api.schemas.responses import LUTListResponse, LutInfo, LutColorsResponse, LutColorEntry
 from core.lut_merger import LUTMerger
 from utils.lut_manager import LUTManager
 
@@ -145,6 +145,24 @@ def merge_luts_endpoint(request: MergeRequest) -> MergeResponse:
             status_code=500,
             detail=f"Merge failed: {exc}",
         ) from exc
+
+
+@router.get("/{lut_name}/colors")
+def get_lut_colors(lut_name: str) -> LutColorsResponse:
+    """Return all unique colors available in a LUT file.
+    返回 LUT 文件中所有可用的唯一颜色。
+    """
+    path: str | None = LUTManager.get_lut_path(lut_name)
+    if path is None:
+        raise HTTPException(status_code=404, detail=f"LUT not found: {lut_name}")
+
+    from core.converter import extract_lut_available_colors
+
+    raw_colors: list[dict] = extract_lut_available_colors(path)
+    entries: list[LutColorEntry] = [
+        LutColorEntry(hex=c["hex"], rgb=c["color"]) for c in raw_colors
+    ]
+    return LutColorsResponse(lut_name=lut_name, total=len(entries), colors=entries)
 
 
 @router.get("/{lut_name}/info")
