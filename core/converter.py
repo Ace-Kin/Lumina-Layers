@@ -797,6 +797,11 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     
     # Step 1: Image Processing
     _prog(0.05, "图像处理与 LUT 匹配中... | Processing image...")
+    # Always enable HiFi timing for better observability (zero-overhead when not printing)
+    _bench_enabled = True
+    _hifi_timings = {}
+    _hifi_t0 = time.perf_counter()
+    
     try:
         processor = LuminaImageProcessor(actual_lut_path, color_mode)
         processor.enable_cleanup = enable_cleanup
@@ -810,6 +815,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             blur_kernel=blur_kernel,
             smooth_sigma=smooth_sigma
         )
+        _hifi_timings['image_proc_s'] = time.perf_counter() - _hifi_t0
     except Exception as e:
         return None, None, None, f"[ERROR] Image processing failed: {e}", None
     
@@ -1017,6 +1023,8 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     
     # Step 6: Generate 3D Meshes
     _prog(0.30, "生成 3D 网格中... | Generating meshes...")
+    _mesh_t0 = time.perf_counter() if _bench_enabled else None
+    
     scene = trimesh.Scene()
     
     transform = np.eye(4)
@@ -1173,7 +1181,9 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                     else:
                         print(f"[CONVERTER]   {hex_c}: mesh empty, skipping")
                 except Exception as e:
-                    print(f"[CONVERTER]   Error extracting free color {hex_c}: {e}")
+                        print(f"[CONVERTER]   Error extracting free color {hex_c}: {e}")
+    
+    _hifi_timings['mesh_gen_s'] = time.perf_counter() - _mesh_t0
     
     # Step 7: Add Keychain Loop
     loop_added = False
@@ -1340,6 +1350,8 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             scene.geometry[geom_name].apply_transform(x_mirror_again)
 
     _prog(0.50, "导出 3MF 中... | Exporting 3MF...")
+    _export_t0 = time.perf_counter() if _bench_enabled else None
+    
     base_name = os.path.splitext(os.path.basename(image_path))[0]
     out_path = os.path.join(OUTPUT_DIR, generate_model_filename(base_name, modeling_mode, color_mode))
     
@@ -1377,6 +1389,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             settings=print_settings,
             color_mode=color_mode
         )
+        _hifi_timings['export_3mf_s'] = time.perf_counter() - _export_t0
         print(f"[CONVERTER] 3MF exported with embedded settings: {out_path}")
     except Exception as e:
         print(f"[CONVERTER] Error exporting 3MF: {e}")
@@ -1496,6 +1509,15 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     
     # Step 10: Generate Status Message
     Stats.increment("conversions")
+    
+    # Output detailed timing for HiFi mode
+    if _hifi_timings:
+        print(
+            "[CONVERTER] HiFi timings (s): "
+            f"image_proc={_hifi_timings.get('image_proc_s', 0.0):.3f}, "
+            f"mesh_gen={_hifi_timings.get('mesh_gen_s', 0.0):.3f}, "
+            f"export_3mf={_hifi_timings.get('export_3mf_s', 0.0):.3f}"
+        )
     
     mode_name = mode_info['mode'].get_display_name()
     msg = f"✅ Conversion complete ({mode_name})! Resolution: {target_w}×{target_h}px"

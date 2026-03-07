@@ -288,6 +288,11 @@ def run_hifi_benchmark(run_preview: bool = True):
 
     _bench_header("HiFi Convert")
     t0 = time.perf_counter()
+    
+    # Enable internal conversion timing (zero-overhead when not instrumenting)
+    import os
+    os.environ['LUMINA_BENCH_TIMING'] = '1'
+    
     result = generate_final_model(
         image_path=HIFI_PATH,
         lut_path=LUT_PATH,
