@@ -2791,11 +2791,15 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
         return 0, 0
 
     def on_image_upload_process_with_html(image_path):
-        """When image is uploaded, process and prepare for crop modal (不分析颜色)"""
+        """When image is uploaded, process and prepare for crop modal (不分析颜色).
+        For HEIC/HEIF files, returns the converted PNG path back to the Image
+        component so the browser can render it (browsers cannot display HEIC).
+        """
         if image_path is None:
             return (
                 0, 0, None,
-                '<div id="preprocess-dimensions-data" data-width="0" data-height="0" data-is-svg="0" style="display:none;"></div>'
+                '<div id="preprocess-dimensions-data" data-width="0" data-height="0" data-is-svg="0" style="display:none;"></div>',
+                None,
             )
         
         try:
@@ -2806,7 +2810,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
                     f'<div id="preprocess-dimensions-data" data-width="{width}" '
                     f'data-height="{height}" data-is-svg="1" style="display:none;"></div>'
                 )
-                return (width, height, image_path, dimensions_html)
+                return (width, height, image_path, dimensions_html, image_path)
 
             info = ImagePreprocessor.process_upload(image_path)
             # 不在这里分析颜色，等用户确认裁剪后再分析
@@ -2814,10 +2818,13 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
                 f'<div id="preprocess-dimensions-data" data-width="{info.width}" '
                 f'data-height="{info.height}" data-is-svg="0" style="display:none;"></div>'
             )
-            return (info.width, info.height, info.processed_path, dimensions_html)
+            # If the image was converted (e.g. HEIC→PNG), feed the PNG back to
+            # the Image component so the browser can actually render it.
+            display_path = info.processed_path if info.was_converted else gr.update()
+            return (info.width, info.height, info.processed_path, dimensions_html, display_path)
         except Exception as e:
             print(f"Image upload error: {e}")
-            return (0, 0, None, '<div id="preprocess-dimensions-data" data-width="0" data-height="0" data-is-svg="0" style="display:none;"></div>')
+            return (0, 0, None, '<div id="preprocess-dimensions-data" data-width="0" data-height="0" data-is-svg="0" style="display:none;"></div>', gr.update())
     
     # JavaScript to open crop modal (不传递颜色推荐，弹窗中不显示)
     # Check if crop modal is enabled before opening
@@ -2930,7 +2937,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
     components['image_conv_image_label'].upload(
         on_image_upload_process_with_html,
         inputs=[components['image_conv_image_label']],
-        outputs=[preprocess_img_width, preprocess_img_height, preprocess_processed_path, preprocess_dimensions_html]
+        outputs=[preprocess_img_width, preprocess_img_height, preprocess_processed_path, preprocess_dimensions_html, components['image_conv_image_label']]
     ).then(
         fn=None,
         inputs=None,
@@ -3917,10 +3924,25 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
 
     # ========== Heightmap Upload/Clear Handlers ==========
     def on_heightmap_upload(heightmap_path):
-        """高度图上传回调 - 验证并显示预览。"""
+        """高度图上传回调 - 验证并显示预览。
+        For HEIC/HEIF files, converts to PNG and returns the converted path
+        back to the component so the browser can render it.
+        """
         if not heightmap_path:
             return on_heightmap_clear()
-        
+
+        # Convert HEIC/HEIF to PNG so the browser can display it
+        display_update = gr.update()
+        if isinstance(heightmap_path, str):
+            ext = os.path.splitext(heightmap_path)[1].lower()
+            if ext in ('.heic', '.heif'):
+                try:
+                    converted = ImagePreprocessor.convert_to_png(heightmap_path)
+                    heightmap_path = converted
+                    display_update = converted
+                except Exception as e:
+                    print(f"[HEIC] Heightmap conversion failed: {e}")
+
         result = HeightmapLoader.load_and_validate(heightmap_path)
         
         if result['success']:
@@ -3933,19 +3955,22 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
             status_msg = " | ".join(status_parts)
             return (
                 gr.update(visible=True, value=result['thumbnail']),
-                status_msg
+                status_msg,
+                display_update,
             )
         else:
             return (
                 gr.update(visible=False),
-                result['error']
+                result['error'],
+                display_update,
             )
     
     def on_heightmap_clear():
         """高度图移除回调 - 清除预览。"""
         return (
             gr.update(visible=False, value=None),
-            ""
+            "",
+            gr.update(),
         )
     
     components['image_conv_heightmap'].change(
@@ -3953,7 +3978,8 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
         inputs=[components['image_conv_heightmap']],
         outputs=[
             components['image_conv_heightmap_preview'],
-            components['textbox_conv_status']
+            components['textbox_conv_status'],
+            components['image_conv_heightmap'],
         ]
     )
     # ========== END Heightmap Upload/Clear Handlers ==========

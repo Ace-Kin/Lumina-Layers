@@ -1181,7 +1181,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                     else:
                         print(f"[CONVERTER]   {hex_c}: mesh empty, skipping")
                 except Exception as e:
-                        print(f"[CONVERTER]   Error extracting free color {hex_c}: {e}")
+                    print(f"[CONVERTER]   Error extracting free color {hex_c}: {e}")
     
     _hifi_timings['mesh_gen_s'] = time.perf_counter() - _mesh_t0
     

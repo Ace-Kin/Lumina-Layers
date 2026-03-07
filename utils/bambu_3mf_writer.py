@@ -639,7 +639,7 @@ class BambuStudio3MFWriter:
 
     def _create_zip(self, tmpdir: str, include_object_model: bool = False):
         """Package all files into a ZIP archive (.3mf)"""
-        with zipfile.ZipFile(self.output_path, 'w', compression=zipfile.ZIP_STORED) as zf:
+        with zipfile.ZipFile(self.output_path, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
             for root, dirs, files in os.walk(tmpdir):
                 for file in files:
                     if include_object_model and file == 'object_1.model':
