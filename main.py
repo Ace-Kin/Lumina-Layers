@@ -1,6 +1,6 @@
 """
 ╔═══════════════════════════════════════════════════════════════════════════════╗
-║                          LUMINA STUDIO v1.6.0                                 ║
+║                          LUMINA STUDIO v1.6.3                                 ║
 ║                    Multi-Material 3D Print Color System                       ║
 ╠═══════════════════════════════════════════════════════════════════════════════╣
 ║  Copyright (C) 2025 Lumina Studio Contributors                                ║
