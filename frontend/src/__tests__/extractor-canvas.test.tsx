@@ -89,11 +89,6 @@ const arbExtractorColorMode = fc.constantFrom(
 
 const arbCornerCount = fc.integer({ min: 0, max: 3 });
 
-const arbCornerPoint = fc.tuple(
-  fc.integer({ min: 0, max: 10000 }),
-  fc.integer({ min: 0, max: 10000 })
-) as fc.Arbitrary<[number, number]>;
-
 // ========== Tests ==========
 
 beforeEach(() => {

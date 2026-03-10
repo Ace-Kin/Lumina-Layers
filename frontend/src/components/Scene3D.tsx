@@ -1,6 +1,7 @@
 import { Suspense, useRef, useState, useEffect, useCallback } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, Environment } from "@react-three/drei";
+import { LIGHTING_CONFIG } from "./lightingConfig";
 import * as THREE from "three";
 import ModelViewer from "./ModelViewer";
 import InteractiveModelViewer from "./InteractiveModelViewer";
@@ -152,14 +153,18 @@ function Scene3D({ modelUrl }: Scene3DProps) {
         }}
       >
         <ScreenshotHelper onGlReady={handleGlReady} />
-        {/* 天空/地面半球光模拟自然环境光 */}
-        <hemisphereLight args={["#ddeeff", "#303030", 1.0]} />
-        {/* 主光源：模拟阳光，从右上前方照射 */}
-        <directionalLight position={[300, 500, 300]} intensity={1.2} color="#fff5e6" />
-        {/* 补光：从左后方填充阴影区域 */}
-        <directionalLight position={[-200, 300, -200]} intensity={0.4} color="#e6f0ff" />
-        {/* 底部微弱反射光 */}
-        <directionalLight position={[0, -100, 0]} intensity={0.15} color="#ffffff" />
+        <Suspense fallback={null}>
+          <Environment
+            files={LIGHTING_CONFIG.environment.hdrFile}
+            background={false}
+            environmentIntensity={LIGHTING_CONFIG.environment.intensity}
+          />
+        </Suspense>
+        <directionalLight
+          position={[...LIGHTING_CONFIG.keyLight.position]}
+          intensity={LIGHTING_CONFIG.keyLight.intensity}
+          color={LIGHTING_CONFIG.keyLight.color}
+        />
         <OrbitControls
           makeDefault
           enableDamping
