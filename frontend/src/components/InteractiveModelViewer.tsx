@@ -2,7 +2,6 @@ import { useMemo, useEffect, useRef, useCallback } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
-import { computeFitDistance } from "./ModelViewer";
 import { useConverterStore } from "../stores/converterStore";
 
 // ========== Exported pure utility functions (testable without Three.js) ==========
@@ -59,7 +58,6 @@ function InteractiveModelViewer({
   scaleY = 1,
 }: InteractiveModelViewerProps) {
   const { scene } = useGLTF(url);
-  const { camera, controls } = useThree();
   const groupRef = useRef<THREE.Group>(null);
 
   // Clone scene once per URL load, apply rotation/centering,
@@ -178,45 +176,8 @@ function InteractiveModelViewer({
     useConverterStore.getState().setModelBounds(modelBounds);
   }, [modelBounds]);
 
-  // Auto-fit camera to model after load
-  useEffect(() => {
-    const wrapper = new THREE.Group();
-    // Add non-color scene
-    const cloneForFit = nonColorObject.clone(true);
-    wrapper.add(cloneForFit);
-    // Add color meshes for bounding calculation
-    for (const mesh of colorMeshes) {
-      wrapper.add(mesh.clone());
-    }
-    wrapper.updateMatrixWorld(true);
-
-    const box = new THREE.Box3().setFromObject(wrapper);
-    const sphere = new THREE.Sphere();
-    box.getBoundingSphere(sphere);
-
-    const perspCam = camera as THREE.PerspectiveCamera;
-    const dist = computeFitDistance(sphere.radius, perspCam.fov);
-
-    // Model is already centered at origin — camera looks straight at (0,0,0) from +Z
-    camera.position.set(0, 0, dist);
-    camera.lookAt(0, 0, 0);
-    camera.updateProjectionMatrix();
-
-    if (controls) {
-      const oc = controls as unknown as {
-        target: THREE.Vector3;
-        maxDistance: number;
-        minDistance: number;
-        update: () => void;
-      };
-      oc.target.set(0, 0, 0);
-      oc.maxDistance = dist * 5;
-      oc.minDistance = dist * 0.1;
-      oc.update();
-    }
-
-    wrapper.clear();
-  }, [nonColorObject, colorMeshes, camera, controls]);
+  // Camera is managed by BedPlatform's default view — skip auto-fit here
+  // so the viewport stays stable when a preview model loads.
 
   // Raycaster for manual hit-testing on click (avoids per-mesh R3F pointer events).
   const raycasterRef = useRef(new THREE.Raycaster());

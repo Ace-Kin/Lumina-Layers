@@ -33,6 +33,30 @@ function ScreenshotHelper({
 }
 
 /**
+ * Expose camera debug info to window for tuning default view.
+ * Run `window.__luminaCameraDebug()` in browser console to print current values.
+ * 将相机调试信息暴露到 window，用于调优默认视角。
+ */
+function CameraDebugHelper() {
+  const { camera, controls } = useThree();
+  useEffect(() => {
+    (window as any).__luminaCameraDebug = () => {
+      const pos = camera.position;
+      const oc = controls as any;
+      const target = oc?.target ?? { x: 0, y: 0, z: 0 };
+      const info = {
+        cameraPosition: { x: +pos.x.toFixed(2), y: +pos.y.toFixed(2), z: +pos.z.toFixed(2) },
+        orbitTarget: { x: +target.x.toFixed(2), y: +target.y.toFixed(2), z: +target.z.toFixed(2) },
+        fov: (camera as THREE.PerspectiveCamera).fov,
+      };
+      console.log("📷 Camera Debug:", JSON.stringify(info, null, 2));
+      return info;
+    };
+  }, [camera, controls]);
+  return null;
+}
+
+/**
  * Inner component that syncs the Canvas clear color with the active theme.
  * Canvas 内部组件，将清除色与当前主题同步。
  */
@@ -164,7 +188,7 @@ function Scene3D({ modelUrl }: Scene3DProps) {
       )}
 
       <Canvas
-        camera={{ position: [0, 200, 400], fov: 45 }}
+        camera={{ position: [1.3, -129.08, 465.36], fov: 45 }}
         gl={{ preserveDrawingBuffer: true }}
         onPointerMissed={() => {
           // Skip deselection if a color mesh was just clicked via native event
@@ -189,6 +213,7 @@ function Scene3D({ modelUrl }: Scene3DProps) {
         }}
       >
         <ScreenshotHelper onGlReady={handleGlReady} />
+        <CameraDebugHelper />
         <ThemeUpdater />
         <Suspense fallback={null}>
           <Environment

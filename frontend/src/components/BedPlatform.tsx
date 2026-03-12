@@ -151,11 +151,13 @@ export default function BedPlatform() {
 
     const radius = Math.max(bedDims.w, bedDims.h) / 2;
     const perspCam = camera as THREE.PerspectiveCamera;
-    const dist = computeFitDistance(radius, perspCam.fov);
+    // Use user-tuned default camera position & orbit target so the bed
+    // renders in the upper portion of the viewport, clear of the bottom
+    // ColorWorkstation panel.
+    const dist = computeFitDistance(radius, perspCam.fov) * 1.45;
 
-    // Camera faces the upright bed from the front (along +Z)
-    camera.position.set(0, 0, dist);
-    camera.lookAt(0, 0, 0);
+    camera.position.set(1.3, -129.08, 465.36);
+    camera.lookAt(1.3, -71.74, -8.68);
     camera.updateProjectionMatrix();
 
     if (controls) {
@@ -165,7 +167,7 @@ export default function BedPlatform() {
         minDistance: number;
         update: () => void;
       };
-      oc.target.set(0, 0, 0);
+      oc.target.set(1.3, -71.74, -8.68);
       oc.maxDistance = dist * 5;
       oc.minDistance = dist * 0.1;
       oc.update();
