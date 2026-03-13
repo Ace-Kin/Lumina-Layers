@@ -17,6 +17,7 @@ const TAB_LIST: { id: TabId; titleKey: string }[] = [
   { id: 'extractor',   titleKey: 'tab.extractor' },
   { id: 'lut-manager', titleKey: 'tab.lutManager' },
   { id: 'five-color',  titleKey: 'tab.fiveColor' },
+  { id: 'settings',    titleKey: 'tab.settings' },
 ];
 
 export default function TabNavBar({ activeTab, modalTab, onTabChange }: TabNavBarProps) {

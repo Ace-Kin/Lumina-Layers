@@ -14,6 +14,7 @@ export interface SettingsState {
   cropEnabled: boolean;
   lastSlicerId: string;
   enableBlur: boolean;
+  enableFancyLoading: boolean;
 }
 
 // ========== Actions Interface ==========
@@ -28,6 +29,7 @@ export interface SettingsActions {
   setCropEnabled: (enabled: boolean) => void;
   setLastSlicerId: (id: string) => void;
   setEnableBlur: (enabled: boolean) => void;
+  setEnableFancyLoading: (enabled: boolean) => void;
   syncToBackend: () => Promise<void>;
 }
 
@@ -43,6 +45,7 @@ export const DEFAULT_SETTINGS: SettingsState = {
   cropEnabled: true,
   lastSlicerId: "",
   enableBlur: true,
+  enableFancyLoading: true,
 };
 
 // ========== Store ==========
@@ -69,6 +72,8 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       setLastSlicerId: (id: string) => set({ lastSlicerId: id }),
 
       setEnableBlur: (enabled: boolean) => set({ enableBlur: enabled }),
+
+      setEnableFancyLoading: (enabled: boolean) => set({ enableFancyLoading: enabled }),
 
       syncToBackend: async () => {
         const state = get();

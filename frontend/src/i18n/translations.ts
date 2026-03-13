@@ -1090,8 +1090,8 @@ export const translations: Record<string, Record<"zh" | "en", string>> = {
     en: "Extractor",
   },
   "widget.lutManager": {
-    zh: "LUT 管理",
-    en: "LUT Manager",
+    zh: "LUT 合并",
+    en: "LUT Merge",
   },
   "widget.fiveColor": {
     zh: "配方查询",
@@ -1156,12 +1156,54 @@ export const translations: Record<string, Record<"zh" | "en", string>> = {
     en: "Extractor",
   },
   "tab.lutManager": {
-    zh: "LUT 管理",
-    en: "LUT Manager",
+    zh: "LUT 合并",
+    en: "LUT Merge",
   },
   "tab.fiveColor": {
     zh: "配方查询",
     en: "Five-Color",
+  },
+  "tab.settings": {
+    zh: "设置",
+    en: "Settings",
+  },
+
+  // ==================== Settings Panel (Particle Loading) ====================
+  "settings.title": {
+    zh: "系统设置",
+    en: "System Settings",
+  },
+  "settings.fancy_loading": {
+    zh: "粒子特效加载动画",
+    en: "Particle Effect Loading",
+  },
+  "settings.fancy_loading_desc": {
+    zh: "启用七彩粒子聚合加载特效，关闭后使用轻量级扫描线动画",
+    en: "Enable rainbow particle convergence effect, disable for lightweight scan line animation",
+  },
+  "settings.cache": {
+    zh: "缓存管理",
+    en: "Cache Management",
+  },
+  "settings.clear_cache": {
+    zh: "清除缓存",
+    en: "Clear Cache",
+  },
+  "settings.clear_cache_desc": {
+    zh: "清除后端临时文件和缓存数据",
+    en: "Clear backend temporary files and cached data",
+  },
+  "settings.cache_cleared": {
+    zh: "缓存已清除",
+    en: "Cache cleared",
+  },
+  "settings.cache_cleared_detail": {
+    zh: "已清除 {count} 个临时文件，释放 {size}",
+    en: "Cleared {count} temporary files, freed {size}",
+  },
+  "loading.generating": {
+    zh: "模型生成中...",
+    en: "Generating model...",
   },
 
   // ==================== App Header ====================

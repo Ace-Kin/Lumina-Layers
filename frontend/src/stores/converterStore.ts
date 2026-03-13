@@ -326,7 +326,7 @@ const DEFAULT_STATE: ConverterState = {
   loop_hole: 2.5,
   enable_relief: false,
   color_height_map: {},
-  heightmap_max_height: 5.0,
+  heightmap_max_height: 3.0,
   enable_outline: false,
   outline_width: 2.0,
   enable_cloisonne: false,

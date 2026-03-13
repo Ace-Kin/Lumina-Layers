@@ -64,8 +64,8 @@ export default function LutManagerPanel() {
       className="w-full max-w-2xl mx-auto h-full overflow-y-auto bg-white dark:bg-gray-800 p-6 flex flex-col gap-4"
     >
       <div>
-        <h2 className="text-lg font-semibold text-gray-100">{t("lut_manager_title")}</h2>
-        <p className="text-xs text-gray-400 mt-1">
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{t("lut_manager_title")}</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
           {t("lut_manager_desc")}
         </p>
       </div>
@@ -86,7 +86,7 @@ export default function LutManagerPanel() {
           </p>
         )}
         {primaryInfo && (
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             Mode: {primaryInfo.color_mode} ({primaryInfo.color_count} colors)
           </p>
         )}
@@ -99,10 +99,10 @@ export default function LutManagerPanel() {
 
       {/* Secondary LUT 多选 */}
       <div data-testid="secondary-list" className="flex flex-col gap-1">
-        <label className="text-sm text-gray-300">{t("lut_manager_secondary_label")}</label>
-        <div className="max-h-40 overflow-y-auto rounded-md border border-gray-600 bg-gray-700 p-2 flex flex-col gap-1">
+        <label className="text-sm text-gray-700 dark:text-gray-300">{t("lut_manager_secondary_label")}</label>
+        <div className="max-h-40 overflow-y-auto rounded-md border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 p-2 flex flex-col gap-1">
           {filteredSecondaryOptions.length === 0 ? (
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-400 dark:text-gray-500">
               {primaryName ? t("lut_manager_no_secondary") : t("lut_manager_select_primary_first")}
             </p>
           ) : (
@@ -111,7 +111,7 @@ export default function LutManagerPanel() {
               return (
                 <label
                   key={name}
-                  className="flex items-center gap-2 text-xs text-gray-200 cursor-pointer hover:bg-gray-600 rounded px-1 py-0.5"
+                  className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 rounded px-1 py-0.5"
                 >
                   <input
                     type="checkbox"
@@ -122,7 +122,7 @@ export default function LutManagerPanel() {
                   />
                   <span className="truncate">{name}</span>
                   {info && (
-                    <span className="text-gray-400 ml-auto shrink-0">
+                    <span className="text-gray-500 dark:text-gray-400 ml-auto shrink-0">
                       {info.color_mode} ({info.color_count})
                     </span>
                   )}
@@ -144,7 +144,7 @@ export default function LutManagerPanel() {
           onChange={setDedupThreshold}
           disabled={allDisabled}
         />
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
           {t("lut_manager_dedup_hint")}
         </p>
       </div>

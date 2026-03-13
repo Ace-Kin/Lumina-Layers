@@ -17,6 +17,7 @@ import CalibrationPanel from "./components/CalibrationPanel";
 import ExtractorPanel from "./components/ExtractorPanel";
 import LutManagerPanel from "./components/LutManagerPanel";
 import FiveColorQueryPanel from "./components/FiveColorQueryPanel";
+import SettingsPanel from "./components/SettingsPanel";
 import type { TabId } from "./types/widget";
 
 /* ---------- Error Boundary ---------- */
@@ -93,13 +94,14 @@ function WidgetToggles() {
 /* ---------- Modal Tab 配置 ---------- */
 
 /** 需要以弹窗形式打开的 Tab（独立操作，不需要和 3D 场景交互） */
-const MODAL_TABS: TabId[] = ['calibration', 'extractor', 'lut-manager', 'five-color'];
+const MODAL_TABS: TabId[] = ['calibration', 'extractor', 'lut-manager', 'five-color', 'settings'];
 
 const MODAL_TITLE_KEYS: Record<string, string> = {
   'calibration': 'tab.calibration',
   'extractor': 'tab.extractor',
   'lut-manager': 'tab.lutManager',
   'five-color': 'tab.fiveColor',
+  'settings': 'tab.settings',
 };
 
 /* ---------- App Content (inside I18nProvider) ---------- */
@@ -202,6 +204,7 @@ function AppContent() {
         )}
         {modalTab === 'lut-manager' && <LutManagerPanel />}
         {modalTab === 'five-color' && <FiveColorQueryPanel />}
+        {modalTab === 'settings' && <SettingsPanel />}
       </FullScreenModal>
     </div>
   );

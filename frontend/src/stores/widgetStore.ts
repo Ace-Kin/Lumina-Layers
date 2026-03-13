@@ -36,6 +36,7 @@ export const TAB_WIDGET_MAP: Record<TabId, WidgetId[]> = {
   extractor: ["extractor"],
   "lut-manager": ["lut-manager"],
   "five-color": ["five-color"],
+  settings: [],
 };
 
 // ===== 默认布局 =====
