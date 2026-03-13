@@ -199,6 +199,7 @@ async def convert_preview(
     modeling_mode: str = Form("high-fidelity", description="建模模式"),
     quantize_colors: int = Form(48, description="K-Means 色彩细节"),
     enable_cleanup: bool = Form(True, description="孤立像素清理"),
+    hue_weight: float = Form(0.0, description="色相保护权重"),
     is_dark: bool = Form(True, description="深色主题"),
     store: SessionStore = Depends(get_session_store),
     registry: FileRegistry = Depends(get_file_registry),
@@ -222,6 +223,7 @@ async def convert_preview(
 
     # 2. CPU computation offloaded to process pool (only paths and scalars)
     try:
+        print(f"[API convert_preview] hue_weight={hue_weight}, lut_name={lut_name}, color_mode={color_mode}")
         result = await pool.submit(
             worker_generate_preview,
             temp_path,
@@ -234,6 +236,7 @@ async def convert_preview(
             quantize_colors,
             enable_cleanup,
             is_dark,
+            hue_weight,
         )
     except asyncio.TimeoutError:
         raise HTTPException(status_code=504, detail="Preview generation timed out")
@@ -557,6 +560,7 @@ async def convert_generate(
         "free_color_set": free_color_set,
         "enable_coating": request.enable_coating,
         "coating_height_mm": request.coating_height_mm,
+        "hue_weight": request.hue_weight,
     }
 
     # 3. CPU computation offloaded to process pool (only paths and scalars)
@@ -611,6 +615,7 @@ async def convert_batch(
     modeling_mode: str = Form("high-fidelity", description="建模模式"),
     quantize_colors: int = Form(48, description="K-Means 色彩细节"),
     enable_cleanup: bool = Form(True, description="孤立像素清理"),
+    hue_weight: float = Form(0.0, description="色相保护权重"),
     registry: FileRegistry = Depends(get_file_registry),
     pool: WorkerPoolManager = Depends(get_worker_pool),
 ) -> BatchResponse:
@@ -661,6 +666,7 @@ async def convert_batch(
                 modeling_mode,
                 quantize_colors,
                 enable_cleanup,
+                hue_weight,
             )
 
             # 3. Result processing (main thread)

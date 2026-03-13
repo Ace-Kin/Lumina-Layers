@@ -2936,13 +2936,14 @@ def generate_preview_cached(image_path, lut_path, target_width_mm,
     color_conf = ColorSystem.get(color_mode)
     
     try:
+        print(f"[Core generate_preview_cached] hue_weight={hue_weight}, color_mode={color_mode}")
         processor = LuminaImageProcessor(actual_lut_path, color_mode, hue_weight=hue_weight)
         processor.enable_cleanup = enable_cleanup
         result = processor.process_image(
             image_path=image_path,
             target_width_mm=target_width_mm,
             modeling_mode=modeling_mode,
-            quantize_colors=quantize_colors,  # Use user-specified value
+            quantize_colors=quantize_colors,
             auto_bg=auto_bg,
             bg_tol=bg_tol,
             blur_kernel=0,

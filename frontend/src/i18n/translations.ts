@@ -1543,6 +1543,10 @@ export const translations: Record<string, Record<"zh" | "en", string>> = {
     zh: "分离底板",
     en: "Separate Backing",
   },
+  adv_hue_protection: {
+    zh: "色相保护",
+    en: "Hue Protection",
+  },
 
   // ==================== Relief Settings ====================
   relief_enable: {

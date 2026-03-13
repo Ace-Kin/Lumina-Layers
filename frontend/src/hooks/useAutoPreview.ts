@@ -13,12 +13,18 @@ export function useAutoPreview(): void {
   const imageFile = useConverterStore((s) => s.imageFile);
   const lut_name = useConverterStore((s) => s.lut_name);
   const cropModalOpen = useConverterStore((s) => s.cropModalOpen);
+  const hue_weight = useConverterStore((s) => s.hue_weight);
   const submitPreview = useConverterStore((s) => s.submitPreview);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastTriggeredRef = useRef<{ imageFile: File | null; lut_name: string }>({
+  const lastTriggeredRef = useRef<{
+    imageFile: File | null;
+    lut_name: string;
+    hue_weight: number;
+  }>({
     imageFile: null,
     lut_name: "",
+    hue_weight: 0,
   });
 
   useEffect(() => {
@@ -35,13 +41,17 @@ export function useAutoPreview(): void {
 
     // Skip if same combination was already triggered
     const last = lastTriggeredRef.current;
-    if (last.imageFile === imageFile && last.lut_name === lut_name) {
+    if (
+      last.imageFile === imageFile &&
+      last.lut_name === lut_name &&
+      last.hue_weight === hue_weight
+    ) {
       return;
     }
 
     // Debounce 300ms then trigger preview
     timerRef.current = setTimeout(() => {
-      lastTriggeredRef.current = { imageFile, lut_name };
+      lastTriggeredRef.current = { imageFile, lut_name, hue_weight };
       submitPreview();
     }, 300);
 
@@ -52,5 +62,5 @@ export function useAutoPreview(): void {
         timerRef.current = null;
       }
     };
-  }, [imageFile, lut_name, cropModalOpen, submitPreview]);
+  }, [imageFile, lut_name, cropModalOpen, hue_weight, submitPreview]);
 }

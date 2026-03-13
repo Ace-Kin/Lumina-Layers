@@ -38,11 +38,7 @@ export function clampValue(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-const VALID_IMAGE_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/svg+xml",
-]);
+const VALID_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/svg+xml"]);
 
 export function isValidImageType(mimeType: string): boolean {
   return VALID_IMAGE_TYPES.has(mimeType);
@@ -73,6 +69,7 @@ export interface ConverterState {
   bg_tol: number;
   quantize_colors: number;
   enable_cleanup: boolean;
+  hue_weight: number;
   separate_backing: boolean;
 
   // 挂件环
@@ -122,8 +119,8 @@ export interface ConverterState {
   previewGlbUrl: string | null;
 
   // 预览时的原始尺寸（用于实时缩放比例计算）
-  preview_width_mm: number | null;   // 预览时的原始宽度
-  preview_height_mm: number | null;  // 预览时的原始高度
+  preview_width_mm: number | null; // 预览时的原始宽度
+  preview_height_mm: number | null; // 预览时的原始高度
   preview_spacer_thick: number | null; // 预览时的原始厚度
 
   // 模型边界（供 KeychainRing3D 定位）
@@ -194,6 +191,7 @@ export interface ConverterActions {
   setBgTol: (tol: number) => void;
   setQuantizeColors: (colors: number) => void;
   setEnableCleanup: (enabled: boolean) => void;
+  setHueWeight: (weight: number) => void;
   setSeparateBacking: (enabled: boolean) => void;
   setAddLoop: (enabled: boolean) => void;
   setLoopWidth: (width: number) => void;
@@ -225,7 +223,7 @@ export interface ConverterActions {
 
   // 浮雕高度
   updateColorHeight: (hex: string, heightMm: number) => void;
-  applyAutoHeight: (mode: 'darker-higher' | 'lighter-higher') => void;
+  applyAutoHeight: (mode: "darker-higher" | "lighter-higher") => void;
   setAutoHeightMode: (mode: AutoHeightMode) => void;
 
   // 高度图
@@ -236,7 +234,7 @@ export interface ConverterActions {
   setPreviewGlbUrl: (url: string | null) => void;
 
   // 模型边界
-  setModelBounds: (bounds: ConverterState['modelBounds']) => void;
+  setModelBounds: (bounds: ConverterState["modelBounds"]) => void;
 
   // API 操作
   fetchLutList: () => Promise<void>;
@@ -247,7 +245,12 @@ export interface ConverterActions {
   // 裁剪
   setEnableCrop: (enabled: boolean) => void;
   setCropModalOpen: (open: boolean) => void;
-  submitCrop: (x: number, y: number, width: number, height: number) => Promise<void>;
+  submitCrop: (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ) => Promise<void>;
 
   // 批量模式
   setBatchMode: (enabled: boolean) => void;
@@ -267,7 +270,6 @@ export interface ConverterActions {
   setError: (error: string | null) => void;
   clearError: () => void;
 }
-
 
 // ========== localStorage Helpers ==========
 
@@ -307,6 +309,7 @@ const DEFAULT_STATE: ConverterState = {
   bg_tol: 40,
   quantize_colors: 48,
   enable_cleanup: true,
+  hue_weight: 0.0,
   separate_backing: false,
   add_loop: false,
   loop_width: 4.0,
@@ -329,7 +332,7 @@ const DEFAULT_STATE: ConverterState = {
   colorRemapMap: {},
   remapHistory: [],
   colorContours: {},
-  autoHeightMode: 'darker-higher' as AutoHeightMode,
+  autoHeightMode: "darker-higher" as AutoHeightMode,
   heightmapFile: null,
   heightmapThumbnailUrl: null,
   previewGlbUrl: null,
@@ -349,7 +352,7 @@ const DEFAULT_STATE: ConverterState = {
   lutListFull: [],
   lutColors: [],
   lutColorsLoading: false,
-  lutColorsLutName: '',
+  lutColorsLutName: "",
   bed_label: "256×256 mm",
   bedSizes: [],
   bedSizesLoading: false,
@@ -413,7 +416,11 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
         updates.color_mode = lutInfo.color_mode as ColorMode;
       }
       set(updates);
-      try { localStorage.setItem("lumina_lastLut", name); } catch { /* noop */ }
+      try {
+        localStorage.setItem("lumina_lastLut", name);
+      } catch {
+        /* noop */
+      }
       // 仅当 LUT 名称实际变化时获取颜色
       if (name && name !== state.lutColorsLutName) {
         _get().fetchLutColors(name);
@@ -429,13 +436,17 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
             target_height_mm: clampValue(
               Math.round(clamped / state.aspectRatio),
               10,
-              400
+              400,
             ),
             threemfDiskPath: null,
             downloadUrl: null,
           };
         }
-        return { target_width_mm: clamped, threemfDiskPath: null, downloadUrl: null };
+        return {
+          target_width_mm: clamped,
+          threemfDiskPath: null,
+          downloadUrl: null,
+        };
       }),
 
     setTargetHeightMm: (height: number) =>
@@ -447,7 +458,7 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
             target_width_mm: clampValue(
               Math.round(clamped * state.aspectRatio),
               10,
-              400
+              400,
             ),
           };
         }
@@ -455,29 +466,57 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
       }),
 
     setSpacerThick: (thick: number) =>
-      set({ spacer_thick: clampValue(thick, 0.2, 3.5), threemfDiskPath: null, downloadUrl: null }),
+      set({
+        spacer_thick: clampValue(thick, 0.2, 3.5),
+        threemfDiskPath: null,
+        downloadUrl: null,
+      }),
 
-    setStructureMode: (mode: StructureMode) => set({ structure_mode: mode, threemfDiskPath: null, downloadUrl: null }),
-    setColorMode: (mode: ColorMode) => set({ color_mode: mode, threemfDiskPath: null, downloadUrl: null }),
-    setModelingMode: (mode: ModelingMode) => set({ modeling_mode: mode, threemfDiskPath: null, downloadUrl: null }),
+    setStructureMode: (mode: StructureMode) =>
+      set({ structure_mode: mode, threemfDiskPath: null, downloadUrl: null }),
+    setColorMode: (mode: ColorMode) =>
+      set({ color_mode: mode, threemfDiskPath: null, downloadUrl: null }),
+    setModelingMode: (mode: ModelingMode) =>
+      set({ modeling_mode: mode, threemfDiskPath: null, downloadUrl: null }),
 
     // --- 高级设置 ---
-    setAutoBg: (enabled: boolean) => set({ auto_bg: enabled, threemfDiskPath: null, downloadUrl: null }),
-    setBgTol: (tol: number) => set({ bg_tol: clampValue(tol, 0, 150), threemfDiskPath: null, downloadUrl: null }),
+    setAutoBg: (enabled: boolean) =>
+      set({ auto_bg: enabled, threemfDiskPath: null, downloadUrl: null }),
+    setBgTol: (tol: number) =>
+      set({
+        bg_tol: clampValue(tol, 0, 150),
+        threemfDiskPath: null,
+        downloadUrl: null,
+      }),
     setQuantizeColors: (colors: number) =>
-      set({ quantize_colors: clampValue(colors, 8, 256), threemfDiskPath: null, downloadUrl: null }),
-    setEnableCleanup: (enabled: boolean) => set({ enable_cleanup: enabled, threemfDiskPath: null, downloadUrl: null }),
+      set({
+        quantize_colors: clampValue(colors, 8, 256),
+        threemfDiskPath: null,
+        downloadUrl: null,
+      }),
+    setEnableCleanup: (enabled: boolean) =>
+      set({
+        enable_cleanup: enabled,
+        threemfDiskPath: null,
+        downloadUrl: null,
+      }),
+    setHueWeight: (weight: number) =>
+      set({
+        hue_weight: clampValue(weight, 0, 1),
+        threemfDiskPath: null,
+        downloadUrl: null,
+      }),
     setSeparateBacking: (enabled: boolean) =>
       set({ separate_backing: enabled }),
 
     // --- 挂件环 ---
-    setAddLoop: (enabled: boolean) => set({ add_loop: enabled, threemfDiskPath: null, downloadUrl: null }),
+    setAddLoop: (enabled: boolean) =>
+      set({ add_loop: enabled, threemfDiskPath: null, downloadUrl: null }),
     setLoopWidth: (width: number) =>
       set({ loop_width: clampValue(width, 2, 10) }),
     setLoopLength: (length: number) =>
       set({ loop_length: clampValue(length, 4, 15) }),
-    setLoopHole: (hole: number) =>
-      set({ loop_hole: clampValue(hole, 1, 5) }),
+    setLoopHole: (hole: number) => set({ loop_hole: clampValue(hole, 1, 5) }),
 
     // --- 浮雕（互斥） ---
     setEnableRelief: (enabled: boolean) =>
@@ -486,7 +525,9 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
           enable_relief: enabled,
           enable_cloisonne: enabled ? false : state.enable_cloisonne,
           // Relief only supports single-sided structure
-          structure_mode: enabled ? StructureModeEnum.SINGLE_SIDED : state.structure_mode,
+          structure_mode: enabled
+            ? StructureModeEnum.SINGLE_SIDED
+            : state.structure_mode,
           threemfDiskPath: null,
           downloadUrl: null,
         };
@@ -527,7 +568,12 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
     },
 
     // --- 描边 ---
-    setEnableOutline: (enabled: boolean) => set({ enable_outline: enabled, threemfDiskPath: null, downloadUrl: null }),
+    setEnableOutline: (enabled: boolean) =>
+      set({
+        enable_outline: enabled,
+        threemfDiskPath: null,
+        downloadUrl: null,
+      }),
     setOutlineWidth: (width: number) =>
       set({ outline_width: clampValue(width, 0.5, 10.0) }),
 
@@ -545,7 +591,12 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
       set({ wire_height_mm: clampValue(height, 0.04, 1.0) }),
 
     // --- 涂层 ---
-    setEnableCoating: (enabled: boolean) => set({ enable_coating: enabled, threemfDiskPath: null, downloadUrl: null }),
+    setEnableCoating: (enabled: boolean) =>
+      set({
+        enable_coating: enabled,
+        threemfDiskPath: null,
+        downloadUrl: null,
+      }),
     setCoatingHeightMm: (height: number) =>
       set({ coating_height_mm: clampValue(height, 0.04, 0.12) }),
 
@@ -566,7 +617,12 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
       const newHistory = [...state.remapHistory, snapshot];
       // 更新 map
       const newMap = { ...state.colorRemapMap, [origHex]: newHex };
-      set({ colorRemapMap: newMap, remapHistory: newHistory, threemfDiskPath: null, downloadUrl: null });
+      set({
+        colorRemapMap: newMap,
+        remapHistory: newHistory,
+        threemfDiskPath: null,
+        downloadUrl: null,
+      });
       // 立即触发后端替换预览
       _get().submitSingleReplace(origHex, newHex);
     },
@@ -576,7 +632,12 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
       if (state.remapHistory.length === 0) return;
       const newHistory = [...state.remapHistory];
       const previousMap = newHistory.pop()!;
-      set({ colorRemapMap: previousMap, remapHistory: newHistory, threemfDiskPath: null, downloadUrl: null });
+      set({
+        colorRemapMap: previousMap,
+        remapHistory: newHistory,
+        threemfDiskPath: null,
+        downloadUrl: null,
+      });
       // 根据撤销后的 map 状态恢复预览
       if (Object.keys(previousMap).length === 0) {
         // map 为空，恢复原始预览
@@ -609,7 +670,7 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
       });
     },
 
-    applyAutoHeight: (mode: 'darker-higher' | 'lighter-higher') => {
+    applyAutoHeight: (mode: "darker-higher" | "lighter-higher") => {
       const state = _get();
       const heightMap = computeAutoHeightMap(
         state.palette,
@@ -654,7 +715,7 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
     setPreviewGlbUrl: (url: string | null) => set({ previewGlbUrl: url }),
 
     // --- 模型边界 ---
-    setModelBounds: (bounds: ConverterState['modelBounds']) =>
+    setModelBounds: (bounds: ConverterState["modelBounds"]) =>
       set({ modelBounds: bounds }),
 
     fetchBedSizes: async () => {
@@ -691,7 +752,11 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
           } else if (!info) {
             // Remembered LUT no longer exists — clear it
             updates.lut_name = "";
-            try { localStorage.removeItem("lumina_lastLut"); } catch { /* noop */ }
+            try {
+              localStorage.removeItem("lumina_lastLut");
+            } catch {
+              /* noop */
+            }
           }
         }
 
@@ -706,7 +771,7 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
 
     fetchLutColors: async (lutName: string) => {
       if (!lutName) {
-        set({ lutColors: [], lutColorsLutName: '' });
+        set({ lutColors: [], lutColorsLutName: "" });
         return;
       }
       // 缓存命中检查：LUT 名称未变且已有数据时跳过请求
@@ -716,7 +781,11 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
       set({ lutColorsLoading: true });
       try {
         const response = await apiFetchLutColors(lutName);
-        set({ lutColors: response.colors, lutColorsLoading: false, lutColorsLutName: lutName });
+        set({
+          lutColors: response.colors,
+          lutColorsLoading: false,
+          lutColorsLutName: lutName,
+        });
       } catch (err) {
         set({
           lutColorsLoading: false,
@@ -745,17 +814,22 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
 
       set({ isLoading: true, error: null });
       try {
-        const response = await apiConvertPreview(state.imageFile, {
-          lut_name: state.lut_name,
-          target_width_mm: state.target_width_mm,
-          auto_bg: state.auto_bg,
-          bg_tol: state.bg_tol,
-          color_mode: state.color_mode,
-          modeling_mode: state.modeling_mode,
-          quantize_colors: state.quantize_colors,
-          enable_cleanup: state.enable_cleanup,
-          is_dark: useSettingsStore.getState().theme === 'dark',
-        }, signal);
+        const response = await apiConvertPreview(
+          state.imageFile,
+          {
+            lut_name: state.lut_name,
+            target_width_mm: state.target_width_mm,
+            auto_bg: state.auto_bg,
+            bg_tol: state.bg_tol,
+            color_mode: state.color_mode,
+            modeling_mode: state.modeling_mode,
+            quantize_colors: state.quantize_colors,
+            enable_cleanup: state.enable_cleanup,
+            hue_weight: state.hue_weight,
+            is_dark: useSettingsStore.getState().theme === "dark",
+          },
+          signal,
+        );
         // 后端返回 JSON，preview_url 是相对路径如 /api/files/xxx
         const previewUrl = `http://localhost:8000${response.preview_url}`;
         const glbUrl = response.preview_glb_url
@@ -798,9 +872,12 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
         return null;
       }
       // Requirement 10.4: enable_relief 为 true 且 color_height_map 为空时阻止生成
-      if (state.enable_relief && Object.keys(state.color_height_map).length === 0) {
+      if (
+        state.enable_relief &&
+        Object.keys(state.color_height_map).length === 0
+      ) {
         // Requirement 10.3: 高度图模式时给出更具体的提示
-        if (state.autoHeightMode === 'use-heightmap') {
+        if (state.autoHeightMode === "use-heightmap") {
           set({ error: "请先上传高度图并获取高度映射后再生成" });
         } else {
           set({ error: "请先设置颜色高度映射后再生成" });
@@ -821,10 +898,7 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
             state.colorRemapMap,
             state.palette,
           );
-          mergedReplacements = [
-            ...(mergedReplacements ?? []),
-            ...remapRegions,
-          ];
+          mergedReplacements = [...(mergedReplacements ?? []), ...remapRegions];
         }
 
         const response = await apiConvertGenerate(state.sessionId, {
@@ -836,6 +910,7 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
           modeling_mode: state.modeling_mode,
           quantize_colors: state.quantize_colors,
           enable_cleanup: state.enable_cleanup,
+          hue_weight: state.hue_weight,
           spacer_thick: state.spacer_thick,
           structure_mode: state.structure_mode,
           separate_backing: state.separate_backing,
@@ -845,9 +920,13 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
           loop_hole: state.loop_hole,
           enable_relief: state.enable_relief,
           height_mode: state.enable_relief
-            ? (state.autoHeightMode === 'use-heightmap' ? 'heightmap' : 'color')
+            ? state.autoHeightMode === "use-heightmap"
+              ? "heightmap"
+              : "color"
             : undefined,
-          color_height_map: state.enable_relief ? state.color_height_map : undefined,
+          color_height_map: state.enable_relief
+            ? state.color_height_map
+            : undefined,
           heightmap_max_height: state.heightmap_max_height,
           enable_outline: state.enable_outline,
           outline_width: state.outline_width,
@@ -909,7 +988,13 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
       }
       set({ isCropping: true, error: null });
       try {
-        const response = await apiCropImage(state.imageFile, x, y, width, height);
+        const response = await apiCropImage(
+          state.imageFile,
+          x,
+          y,
+          width,
+          height,
+        );
         const croppedFullUrl = `http://localhost:8000${response.cropped_url}`;
 
         // Fetch cropped image as Blob to create a new File
@@ -982,6 +1067,7 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
           modeling_mode: state.modeling_mode,
           quantize_colors: state.quantize_colors,
           enable_cleanup: state.enable_cleanup,
+          hue_weight: state.hue_weight,
         };
         const result = await apiConvertBatch(state.batchFiles, params);
         set({ batchResult: result, batchLoading: false });
@@ -1017,12 +1103,12 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
             colorRemapMap: previousMap,
             remapHistory: currentHistory.slice(0, -1),
             replacePreviewLoading: false,
-            error: err instanceof Error ? err.message : '颜色替换失败',
+            error: err instanceof Error ? err.message : "颜色替换失败",
           });
         } else {
           set({
             replacePreviewLoading: false,
-            error: err instanceof Error ? err.message : '颜色替换失败',
+            error: err instanceof Error ? err.message : "颜色替换失败",
           });
         }
       }
@@ -1085,5 +1171,5 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
     // --- UI 状态 ---
     setError: (error: string | null) => set({ error }),
     clearError: () => set({ error: null }),
-  })
+  }),
 );
