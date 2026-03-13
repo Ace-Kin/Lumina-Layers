@@ -198,11 +198,10 @@ describe('PalettePanel 双色显示', () => {
     render(<PalettePanel />);
 
     // The detail area uses text-[10px] font-mono class for hex codes
-    // quantized_hex='ff0000' only appears once (in detail area), matched_hex='ee0000' appears in both detail and list
+    // quantized_hex='ff0000' appears in detail area ColorBlock
     expect(screen.getByText('#ff0000')).toBeInTheDocument();
-    // matched_hex appears in both SelectedColorDetail and PaletteItem, so use getAllByText
-    const matchedHexElements = screen.getAllByText('#ee0000');
-    expect(matchedHexElements.length).toBeGreaterThanOrEqual(2); // detail area + palette list
+    // matched_hex='ee0000' appears in detail area ColorBlock
+    expect(screen.getByText('#ee0000')).toBeInTheDocument();
   });
 
   it('颜色已被替换时额外显示替换色色块 (Req 4.3)', async () => {
@@ -221,9 +220,8 @@ describe('PalettePanel 双色显示', () => {
     render(<PalettePanel />);
 
     expect(screen.getByText('替换色')).toBeInTheDocument();
-    // replacement hex '00ee00' appears in detail area, palette list item, and also as matched_hex of second palette entry
-    const replacementHexElements = screen.getAllByText('#00ee00');
-    expect(replacementHexElements.length).toBeGreaterThanOrEqual(2);
+    // replacement hex '00ee00' appears in detail area ColorBlock
+    expect(screen.getByText('#00ee00')).toBeInTheDocument();
   });
 
   it('颜色未被替换时不显示替换色色块', async () => {
@@ -278,7 +276,7 @@ describe('PalettePanel 双色显示', () => {
 
     render(<PalettePanel />);
 
-    const firstItem = screen.getByRole('button', { name: /颜色 #ee0000/ });
+    const firstItem = screen.getByRole('button', { name: /颜色 ee0000/ });
     fireEvent.click(firstItem);
 
     expect(useConverterStore.getState().selectedColor).toBe('ee0000');

@@ -86,6 +86,7 @@ describe("submitBatch API 调用和状态管理", () => {
       modeling_mode: ModelingMode.HIGH_FIDELITY,
       quantize_colors: 48,
       enable_cleanup: true,
+      hue_weight: 0,
     });
   });
 

@@ -21,20 +21,20 @@ describe("ThemeToggle", () => {
   it("renders moon icon (🌙) in light mode", () => {
     useSettingsStore.setState({ theme: "light" });
     render(<ThemeToggle />);
-    expect(screen.getByRole("button", { name: "Toggle theme" })).toHaveTextContent("🌙");
+    expect(screen.getByRole("button", { name: "切换主题" })).toHaveTextContent("🌙");
   });
 
   it("renders sun icon (☀️) in dark mode", () => {
     useSettingsStore.setState({ theme: "dark" });
     render(<ThemeToggle />);
-    expect(screen.getByRole("button", { name: "Toggle theme" })).toHaveTextContent("☀️");
+    expect(screen.getByRole("button", { name: "切换主题" })).toHaveTextContent("☀️");
   });
 
   it("toggles theme from light to dark on click", () => {
     useSettingsStore.setState({ theme: "light" });
     render(<ThemeToggle />);
 
-    const button = screen.getByRole("button", { name: "Toggle theme" });
+    const button = screen.getByRole("button", { name: "切换主题" });
     fireEvent.click(button);
 
     expect(useSettingsStore.getState().theme).toBe("dark");
