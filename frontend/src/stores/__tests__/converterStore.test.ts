@@ -195,10 +195,19 @@ describe('setEnableRelief auto-initialization', () => {
 
     const state = useConverterStore.getState();
     expect(state.enable_relief).toBe(true);
-    expect(state.color_height_map).toEqual({
-      'ee0000': 2.0,  // 4.0 * 0.5
-      '00ee00': 2.0,
-    });
+    // Now uses computeAutoHeightMap (darker-higher by default),
+    // so heights vary by luminance instead of uniform 50%
+    expect(Object.keys(state.color_height_map)).toEqual(
+      expect.arrayContaining(['ee0000', '00ee00']),
+    );
+    // Each color should have a height within valid range
+    for (const h of Object.values(state.color_height_map)) {
+      expect(h).toBeGreaterThanOrEqual(0.08);
+      expect(h).toBeLessThanOrEqual(4.0);
+    }
+    // Different colors should have different heights (luminance-based)
+    const heights = Object.values(state.color_height_map);
+    expect(heights[0]).not.toBeCloseTo(heights[1], 1);
   });
 
   it('does NOT overwrite existing color_height_map', () => {

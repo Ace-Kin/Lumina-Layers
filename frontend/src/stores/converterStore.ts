@@ -528,7 +528,7 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
     setLoopHole: (hole: number) => set({ loop_hole: clampValue(hole, 1, 5) }),
 
     // --- 浮雕（互斥） ---
-    setEnableRelief: (enabled: boolean) =>
+    setEnableRelief: (enabled: boolean) => {
       set((state) => {
         const updates: Partial<ConverterState> = {
           enable_relief: enabled,
@@ -541,22 +541,27 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
           downloadUrl: null,
         };
         // Requirement 6.5: When switching enable_relief from false to true,
-        // auto-initialize color_height_map ONLY if it is currently empty
+        // auto-initialize color_height_map ONLY if it is currently empty.
+        // Use computeAutoHeightMap to assign different heights based on
+        // luminance, so the relief effect is visible immediately.
         if (
           enabled &&
           !state.enable_relief &&
           state.palette.length > 0 &&
           Object.keys(state.color_height_map).length === 0
         ) {
-          const defaultHeight = state.heightmap_max_height * 0.5;
-          const initMap: Record<string, number> = {};
-          for (const entry of state.palette) {
-            initMap[entry.matched_hex] = defaultHeight;
-          }
-          updates.color_height_map = initMap;
+          const mode = state.autoHeightMode === "use-heightmap"
+            ? "darker-higher"
+            : (state.autoHeightMode as "darker-higher" | "lighter-higher");
+          updates.color_height_map = computeAutoHeightMap(
+            state.palette,
+            mode,
+            state.heightmap_max_height,
+          );
         }
         return updates;
-      }),
+      });
+    },
     setColorHeightMap: (map: Record<string, number>) =>
       set({ color_height_map: map }),
     setHeightmapMaxHeight: (height: number) => {
@@ -673,10 +678,9 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
 
     // --- 浮雕高度 ---
     updateColorHeight: (hex: string, heightMm: number) => {
-      const state = _get();
-      set({
+      set((state) => ({
         color_height_map: { ...state.color_height_map, [hex]: heightMm },
-      });
+      }));
     },
 
     applyAutoHeight: (mode: "darker-higher" | "lighter-higher") => {

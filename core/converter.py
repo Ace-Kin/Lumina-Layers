@@ -1890,6 +1890,27 @@ def generate_auto_height_map(color_list, mode, base_thickness, max_relief_height
     return color_height_map
 
 
+def _normalize_color_height_map(color_height_map: dict[str, float]) -> dict[str, float]:
+    """Normalize hex keys to '#rrggbb' format.
+    将 hex 键归一化为 '#rrggbb' 格式。
+
+    Args:
+        color_height_map (dict[str, float]): Mapping of hex color keys to height values.
+            Keys may or may not have '#' prefix. (颜色到高度的映射，键可能带或不带 '#' 前缀)
+
+    Returns:
+        dict[str, float]: New dict with all keys normalized to '#rrggbb' format.
+            (所有键归一化为 '#rrggbb' 格式的新字典)
+    """
+    normalized = {}
+    for key, value in color_height_map.items():
+        if not key.startswith('#'):
+            normalized[f'#{key}'] = value
+        else:
+            normalized[key] = value
+    return normalized
+
+
 def _build_relief_voxel_matrix(matched_rgb, material_matrix, mask_solid, color_height_map,
                                default_height, structure_mode, backing_color_id, pixel_scale,
                                height_matrix=None):
@@ -1919,6 +1940,8 @@ def _build_relief_voxel_matrix(matched_rgb, material_matrix, mask_solid, color_h
     Returns:
         tuple: (full_matrix, backing_metadata)
     """
+    color_height_map = _normalize_color_height_map(color_height_map)
+
     target_h, target_w = material_matrix.shape[:2]
     
     # Constants
