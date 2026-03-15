@@ -37,6 +37,7 @@ export interface ConvertPreviewRequest {
   quantize_colors: number;
   enable_cleanup: boolean;
   hue_weight: number;
+  chroma_gate: number;
   is_dark: boolean;
 }
 
@@ -313,6 +314,7 @@ export interface BatchConvertParams {
   quantize_colors: number;
   enable_cleanup: boolean;
   hue_weight: number;
+  chroma_gate: number;
 }
 
 // ========== Five-Color Query Models ==========
