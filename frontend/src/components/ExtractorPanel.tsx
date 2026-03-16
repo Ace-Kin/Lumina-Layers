@@ -12,6 +12,27 @@ const colorModeOptions = Object.values(ExtractorColorMode).map((v) => ({
   value: v,
 }));
 
+/** 常见 Bambu Lab 耗材类型 */
+const MATERIAL_OPTIONS = [
+  "PLA Basic",
+  "PLA Matte",
+  "PLA Silk",
+  "PLA Metal",
+  "PLA Glow",
+  "PLA Marble",
+  "PLA-CF",
+  "PETG Basic",
+  "PETG HF",
+  "PETG-CF",
+  "ABS",
+  "ASA",
+  "TPU 95A",
+  "PVA",
+  "PA",
+  "PA-CF",
+  "PC",
+];
+
 const pageOptions = Object.values(ExtractorPage).map((v) => ({
   label: v,
   value: v,
@@ -157,6 +178,22 @@ export default function ExtractorPanel() {
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
             {t("ext_palette_title") ?? "调色板确认"}
           </span>
+          {/* 统一耗材类型选择 */}
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-gray-500 dark:text-gray-400 shrink-0">耗材类型</span>
+            <select
+              className="flex-1 px-1 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs"
+              value={defaultPalette[0]?.material ?? "PLA Basic"}
+              onChange={(e) => {
+                const mat = e.target.value;
+                defaultPalette.forEach((_, i) => updatePaletteEntry(i, { material: mat }));
+              }}
+            >
+              {MATERIAL_OPTIONS.map((mat) => (
+                <option key={mat} value={mat}>{mat}</option>
+              ))}
+            </select>
+          </div>
           <div className="flex flex-col gap-1">
             {defaultPalette.map((entry, idx) => (
               <div key={idx} className="flex items-center gap-2 text-xs">
@@ -169,7 +206,6 @@ export default function ExtractorPanel() {
                   value={entry.color}
                   onChange={(e) => updatePaletteEntry(idx, { color: e.target.value })}
                 />
-                <span className="text-gray-400 dark:text-gray-500 shrink-0">{entry.material}</span>
               </div>
             ))}
           </div>

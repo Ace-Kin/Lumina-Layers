@@ -149,6 +149,7 @@ def merge_luts_endpoint(request: MergeRequest) -> MergeResponse:
         )
         entries = [(primary_rgb, primary_stacks, primary_mode)]
         all_modes: list[str] = [primary_mode]
+        all_paths: list[str] = [primary_path]  # 记录所有输入路径，用于判断输出格式
 
         # 5. Load each secondary, skip Merged / 加载辅助 LUT，跳过 Merged
         for sec_name in request.secondary_names:
@@ -163,6 +164,7 @@ def merge_luts_endpoint(request: MergeRequest) -> MergeResponse:
             )
             entries.append((sec_rgb, sec_stacks, sec_mode))
             all_modes.append(sec_mode)
+            all_paths.append(sec_path)
 
         # 6. Need at least 2 entries / 至少需要 2 个有效条目
         if len(entries) < 2:
@@ -176,20 +178,41 @@ def merge_luts_endpoint(request: MergeRequest) -> MergeResponse:
         if not valid:
             raise HTTPException(status_code=400, detail=err_msg)
 
+        # 判断输出格式：所有输入都是 .json 时输出 JSON，否则输出 .npz
+        all_json = all(p.lower().endswith(".json") for p in all_paths)
+
         # 8. Merge / 执行合并
+        # 如果输出 JSON，加载 metadata 以便保存完整的 Keyed JSON
+        metadata_list: list[LUTMetadata] | None = None
+        if all_json:
+            metadata_list = []
+            for p in all_paths:
+                _, _, meta = LUTManager.load_lut_with_metadata(p)
+                metadata_list.append(meta)
+
         merged_rgb, merged_stacks, stats = LUTMerger.merge_luts(
-            entries, dedup_threshold=request.dedup_threshold
+            entries, dedup_threshold=request.dedup_threshold,
+            metadata_list=metadata_list,
         )
 
         # 9. Save to Custom dir / 保存到 Custom 目录
         timestamp: str = time.strftime("%Y%m%d_%H%M%S")
         mode_str: str = "+".join(all_modes)
-        output_name: str = f"Merged_{mode_str}_{timestamp}.npz"
+        output_ext: str = ".json" if all_json else ".npz"
+        output_name: str = f"Merged_{mode_str}_{timestamp}{output_ext}"
         custom_dir: str = os.path.join(LUTManager.LUT_PRESET_DIR, "Custom")
         os.makedirs(custom_dir, exist_ok=True)
         output_path: str = os.path.join(custom_dir, output_name)
 
-        LUTMerger.save_merged_lut(merged_rgb, merged_stacks, output_path)
+        if all_json:
+            # 输出 Keyed JSON 格式，保留 palette 和打印参数
+            merged_metadata = stats.get("merged_metadata")
+            if merged_metadata is None:
+                # 回退：使用主 LUT 的 metadata
+                _, _, merged_metadata = LUTManager.load_lut_with_metadata(primary_path)
+            LUTManager.save_keyed_json(output_path, merged_rgb, merged_stacks, merged_metadata)
+        else:
+            LUTMerger.save_merged_lut(merged_rgb, merged_stacks, output_path)
 
         # 10. Return response / 返回响应
         # 注意：validate_print_params() 和 merge_palettes() 尚未实现（任务 6），暂时使用空列表

@@ -62,6 +62,30 @@ def _load_engine(lut_name: str) -> tuple[ColorQueryEngine, str]:
                 raise HTTPException(status_code=500, detail=f"Failed to load LUT: {msg}")
             sources = StackLUTLoader.load_sources_from_json(path)
             engine = ColorQueryEngine(stack_lut=stack_data, lut_rgb=rgb_data, sources=sources)
+        elif path.endswith(".json"):
+            # Keyed JSON format — use LUTManager unified loader
+            rgb_data, stack_data, metadata = LUTManager.load_lut_with_metadata(path)
+            if rgb_data is None or len(rgb_data) == 0:
+                raise HTTPException(status_code=500, detail="Failed to load JSON LUT: no RGB data")
+            # Use palette names for color_count
+            color_count = len(metadata.palette) if metadata.palette else None
+            engine = ColorQueryEngine(
+                stack_lut=stack_data, lut_rgb=rgb_data, color_count=color_count,
+            )
+            # Override base_colors from palette hex_color
+            if metadata.palette:
+                engine._palette_names = [e.color for e in metadata.palette]
+                base_from_palette = []
+                for e in metadata.palette:
+                    if e.hex_color:
+                        h = e.hex_color.lstrip("#")
+                        if len(h) == 6:
+                            base_from_palette.append((int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)))
+                        else:
+                            base_from_palette.append((128, 128, 128))
+                    else:
+                        base_from_palette.append((128, 128, 128))
+                engine.base_colors = base_from_palette
         else:
             # .npy file
             success, msg, rgb_data = StackLUTLoader.load_lut_rgb(path)
