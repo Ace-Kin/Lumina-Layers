@@ -133,17 +133,19 @@ class LUTManager:
         if "8色" in combined or "8-COLOR" in combined or "8COLOR" in combined:
             return "8-Color Max"
         if "6色" in combined or "6-COLOR" in combined or "6COLOR" in combined:
+            if "RYBW" in combined or "红黄蓝" in combined:
+                return "6-Color (RYBW 1296)"
             return "6-Color (Smart 1296)"
         # 5-Color Extended 必须在 4-Color 之前检测
         if "5色" in combined or "5-COLOR" in combined or "5COLOR" in combined:
             return "5-Color Extended"
         # CMYW/RYBW 必须在 BW 之前检测，避免 "RYBW" 中的 "BW" 误匹配
         if "CMYW" in combined or "青品黄" in combined:
-            return "4-Color"
+            return "4-Color (CMYW)"
         if "RYBW" in combined or "红黄蓝" in combined:
-            return "4-Color"
+            return "4-Color (RYBW)"
         if "4色" in combined or "4-COLOR" in combined or "4COLOR" in combined:
-            return "4-Color"
+            return "4-Color (CMYW)"
         # BW 单独检测：排除 RYBW/CMYW 已匹配的情况
         if "黑白" in combined or "B&W" in combined:
             return "BW (Black & White)"
@@ -151,8 +153,8 @@ class LUTManager:
         if re.search(r"(?<![A-Z])BW(?![A-Z])", combined):
             return "BW (Black & White)"
 
-        # 默认回退为 4-Color
-        return "4-Color"
+        # 默认回退为 4-Color (CMYW)
+        return "4-Color (CMYW)"
     
     @classmethod
     def get_lut_path(cls, display_name: str) -> str | None:
@@ -548,31 +550,29 @@ class LUTManager:
         # Build entries
         entries = []
         n = len(rgb)
+
+        # Batch RGB → Lab conversion using OpenCV (much faster than per-entry colormath)
+        if lab is None:
+            import cv2
+            rgb_arr = np.array(rgb[:n], dtype=np.uint8).reshape(1, n, 3)
+            lab_arr = cv2.cvtColor(rgb_arr, cv2.COLOR_RGB2Lab).reshape(n, 3).astype(float)
+            # OpenCV Lab range: L [0,255], a [0,255], b [0,255] → standard L [0,100], a [-128,127], b [-128,127]
+            lab_arr[:, 0] = lab_arr[:, 0] * 100.0 / 255.0
+            lab_arr[:, 1] = lab_arr[:, 1] - 128.0
+            lab_arr[:, 2] = lab_arr[:, 2] - 128.0
+        else:
+            lab_arr = np.array(lab[:n], dtype=float)
+
         for i in range(n):
             entry: dict = {}
             # Store original RGB for exact roundtrip
             entry["rgb"] = [int(rgb[i][0]), int(rgb[i][1]), int(rgb[i][2])]
-            # Lab values
-            if lab is not None and i < len(lab):
-                entry["lab"] = [float(lab[i][0]), float(lab[i][1]), float(lab[i][2])]
-            else:
-                # Convert RGB → Lab
-                try:
-                    from colormath.color_objects import LabColor, sRGBColor
-                    from colormath.color_conversions import convert_color
-                    srgb = sRGBColor(
-                        int(rgb[i][0]) / 255.0,
-                        int(rgb[i][1]) / 255.0,
-                        int(rgb[i][2]) / 255.0,
-                    )
-                    lab_color = convert_color(srgb, LabColor)
-                    entry["lab"] = [
-                        round(float(lab_color.lab_l), 6),
-                        round(float(lab_color.lab_a), 6),
-                        round(float(lab_color.lab_b), 6),
-                    ]
-                except Exception:
-                    entry["lab"] = [0.0, 0.0, 0.0]
+            # Lab values (pre-computed batch)
+            entry["lab"] = [
+                round(float(lab_arr[i][0]), 6),
+                round(float(lab_arr[i][1]), 6),
+                round(float(lab_arr[i][2]), 6),
+            ]
 
             # Recipe: use palette color names instead of numeric indices
             if stacks is not None and i < len(stacks):

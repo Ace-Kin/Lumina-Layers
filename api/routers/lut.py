@@ -63,10 +63,23 @@ async def upload_lut(file: UploadFile = File(..., description="LUT 文件 (.npy/
             detail=f"不支持的文件类型: {ext}，仅支持 .npy/.json/.npz",
         )
 
-    # Save to temp file first
+    # Save to temp file first (chunked read with size limit)
+    MAX_LUT_SIZE = 50 * 1024 * 1024  # 50 MB
+    total_read = 0
     with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
-        content = await file.read()
-        tmp.write(content)
+        while True:
+            chunk = await file.read(1024 * 1024)  # 1 MB chunks
+            if not chunk:
+                break
+            total_read += len(chunk)
+            if total_read > MAX_LUT_SIZE:
+                tmp_path = tmp.name
+                os.unlink(tmp_path)
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"文件过大，最大允许 {MAX_LUT_SIZE // (1024*1024)} MB",
+                )
+            tmp.write(chunk)
         tmp_path = tmp.name
 
     try:

@@ -64,8 +64,12 @@ def _generate_recipes(color_mode: str, total_cells: int, page_choice: str = "Pag
     if "6-Color" in color_mode:
         # Use get_top_1296_colors() from calibration module
         try:
-            from core.calibration import get_top_1296_colors
-            top_stacks = get_top_1296_colors()
+            if "RYBW" in color_mode:
+                from core.calibration import get_top_1296_colors_rybw
+                top_stacks = get_top_1296_colors_rybw()
+            else:
+                from core.calibration import get_top_1296_colors
+                top_stacks = get_top_1296_colors()
             stacks = [list(s) for s in top_stacks[:total_cells]]
             return np.array(stacks, dtype=np.int32)
         except Exception as e:

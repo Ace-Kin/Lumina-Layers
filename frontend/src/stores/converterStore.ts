@@ -28,6 +28,7 @@ import {
   regionReplace as apiRegionReplace,
   resetReplacements as apiResetReplacements,
   autoDetectColors as apiAutoDetectColors,
+  uploadLut as apiUploadLut,
 } from "../api/converter";
 import type { LutColorEntry, LutInfo } from "../api/types";
 import {
@@ -309,6 +310,7 @@ export interface ConverterActions {
   setModelBounds: (bounds: ConverterState["modelBounds"]) => void;
 
   // API 操作
+  uploadLut: (file: File) => Promise<void>;
   fetchLutList: () => Promise<void>;
   fetchLutColors: (lutName: string) => Promise<void>;
   submitPreview: () => Promise<void>;
@@ -1095,6 +1097,22 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
     },
 
     // --- API 操作 ---
+    uploadLut: async (file: File) => {
+      set({ lutListLoading: true, error: null });
+      try {
+        const res = await apiUploadLut(file);
+        // 上传成功后刷新列表并选中新 LUT
+        await _get().fetchLutList();
+        set({ lut_name: res.name });
+      } catch (err) {
+        set({
+          error: err instanceof Error ? err.message : "LUT 上传失败",
+        });
+      } finally {
+        set({ lutListLoading: false });
+      }
+    },
+
     fetchLutList: async () => {
       set({ lutListLoading: true });
       try {

@@ -391,6 +391,7 @@ def confirm_palette(
 
     # Persist palette to the LUT JSON file on disk
     lut_path = session_data.get("lut_path")
+    persist_warning = None
     if lut_path and os.path.exists(lut_path):
         try:
             rgb, stacks, existing_metadata = LUTManager.load_lut_with_metadata(lut_path)
@@ -399,9 +400,12 @@ def confirm_palette(
                 stacks = np.zeros((len(rgb), 0), dtype=np.int32)
             LUTManager.save_keyed_json(lut_path, rgb, stacks, existing_metadata)
         except Exception as e:
+            persist_warning = f"调色板已确认，但持久化到磁盘失败: {e}"
             print(f"[CONFIRM_PALETTE] Failed to persist palette to {lut_path}: {e}")
 
     metadata = LUTMetadata(palette=palette_entries)
     store.put(request.session_id, "lut_metadata", metadata)
 
+    if persist_warning:
+        return {"status": "warning", "message": persist_warning}
     return {"status": "ok", "message": "调色板已确认"}

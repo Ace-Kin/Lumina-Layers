@@ -5,7 +5,6 @@ import {
   ModelingMode,
   StructureMode,
 } from "../../api/types";
-import { uploadLut } from "../../api/converter";
 import ImageUpload from "../ui/ImageUpload";
 import BatchFileUploader from "../ui/BatchFileUploader";
 import Checkbox from "../ui/Checkbox";
@@ -75,7 +74,7 @@ export default function BasicSettings() {
   const setCropModalOpen = useConverterStore((s) => s.setCropModalOpen);
   const submitCrop = useConverterStore((s) => s.submitCrop);
   const setError = useConverterStore((s) => s.setError);
-  const fetchLutList = useConverterStore((s) => s.fetchLutList);
+  const uploadLut = useConverterStore((s) => s.uploadLut);
   const setBatchMode = useConverterStore((s) => s.setBatchMode);
   const addBatchFiles = useConverterStore((s) => s.addBatchFiles);
   const removeBatchFile = useConverterStore((s) => s.removeBatchFile);
@@ -87,13 +86,7 @@ export default function BasicSettings() {
   const handleLutUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      const res = await uploadLut(file);
-      await fetchLutList();
-      setLutName(res.name);
-    } catch {
-      setError(t("basic_lut_upload_error"));
-    }
+    await uploadLut(file);
     // Reset so same file can be re-uploaded
     if (lutFileRef.current) lutFileRef.current.value = "";
   };

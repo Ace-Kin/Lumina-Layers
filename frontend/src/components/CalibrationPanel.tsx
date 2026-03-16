@@ -61,6 +61,7 @@ export default function CalibrationPanel() {
         step={0.5}
         unit="mm"
         onChange={setBlockSize}
+        disabled={blockSizeDisabled}
       />
 
       <Slider
@@ -71,6 +72,7 @@ export default function CalibrationPanel() {
         step={0.01}
         unit="mm"
         onChange={setGap}
+        disabled={gapDisabled}
       />
 
       <Dropdown

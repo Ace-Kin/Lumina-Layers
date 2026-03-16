@@ -239,13 +239,8 @@ def get_top_1296_colors():
         
         final_rgb = curr.astype(np.uint8)
         
-        # Convert to Lab for color difference calculation
-        srgb = sRGBColor(final_rgb[0]/255.0, final_rgb[1]/255.0, final_rgb[2]/255.0)
-        lab = convert_color(srgb, LabColor)
-        
         candidates.append({
             "stack": stack,
-            "lab": lab,
             "rgb": final_rgb
         })
     
@@ -479,12 +474,9 @@ def get_top_1296_colors_rybw():
             curr = rgb * a + curr * (1.0 - a)
 
         final_rgb = curr.astype(np.uint8)
-        srgb = sRGBColor(final_rgb[0]/255.0, final_rgb[1]/255.0, final_rgb[2]/255.0)
-        lab = convert_color(srgb, LabColor)
 
         candidates.append({
             "stack": stack,
-            "lab": lab,
             "rgb": final_rgb
         })
 

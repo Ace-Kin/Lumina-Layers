@@ -310,8 +310,13 @@ class LUTMerger:
             return (rgb, _remap_stacks(stacks_arr, color_mode, lut_path))
 
         elif color_mode == "6-Color":
-            from core.calibration import get_top_1296_colors
-            raw_stacks = get_top_1296_colors()
+            subtype = _detect_6color_subtype(lut_path) if lut_path else "6-Color"
+            if "RYBW" in subtype:
+                from core.calibration import get_top_1296_colors_rybw
+                raw_stacks = get_top_1296_colors_rybw()
+            else:
+                from core.calibration import get_top_1296_colors
+                raw_stacks = get_top_1296_colors()
             stacks = [tuple(reversed(s)) for s in raw_stacks]
             min_len = min(len(stacks), count)
             stacks_arr = np.array(stacks[:min_len])
@@ -518,6 +523,9 @@ class LUTMerger:
 
         if metadata_list and LUTMetadata and PaletteEntry:
             # Auto-infer default palette for LUTs with empty palette
+            # 使用副本避免修改调用方持有的原始对象
+            import copy
+            metadata_list = [copy.copy(m) for m in metadata_list]
             for i, meta in enumerate(metadata_list):
                 if not meta.palette:
                     mode = lut_entries[i][2]
