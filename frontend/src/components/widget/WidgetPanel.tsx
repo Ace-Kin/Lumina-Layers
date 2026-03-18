@@ -188,7 +188,7 @@ export const WidgetPanel = React.memo(function WidgetPanel({
         animate={animateTarget}
         transition={transition}
         onAnimationComplete={handleAnimationComplete}
-        className={`rounded-xl shadow-lg border border-white/20 dark:border-gray-700/50 overflow-hidden will-change-transform ${
+        className={`rounded-xl shadow-lg border border-white/20 dark:border-gray-700/50 will-change-transform ${
           enableBlur
             ? 'backdrop-blur-xl bg-white/70 dark:bg-gray-900/70'
             : 'bg-gray-100/95 dark:bg-gray-900/95'
@@ -204,11 +204,10 @@ export const WidgetPanel = React.memo(function WidgetPanel({
         />
         <div
           ref={contentRef}
-          className="overflow-hidden"
           onPointerDown={(e) => e.stopPropagation()}
           style={{
             height: widget.collapsed || isBeingDragged ? 0 : 'auto',
-            overflow: 'hidden',
+            overflow: widget.collapsed || isBeingDragged ? 'hidden' : 'visible',
             visibility: widget.collapsed || isBeingDragged ? 'hidden' : 'visible',
           }}
         >

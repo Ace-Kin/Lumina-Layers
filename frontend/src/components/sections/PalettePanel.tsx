@@ -324,7 +324,7 @@ export default function PalettePanel() {
 
           {/* Palette items */}
           <div
-            className="max-h-80 overflow-y-auto"
+            className="max-h-80 overflow-y-auto dock-scrollbar"
             role="listbox"
             aria-label={t("palette_list_label")}
           >

@@ -225,7 +225,7 @@ function AppContent() {
         </div>
 
         {/* Center: Tabs */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex justify-center z-10 w-[max-content]">
+        <div className="flex-shrink-0 flex justify-center z-20">
           <TabNavBar
             activeTab={activeTab}
             modalTab={modalTab}
@@ -234,7 +234,7 @@ function AppContent() {
         </div>
 
         {/* Right Side: Controls */}
-        <div className="flex-1 flex justify-end items-center gap-2 relative z-20">
+        <div className="flex-1 flex justify-end items-center gap-2">
           <WidgetToggles />
           <LanguageToggle />
           <ThemeToggle />

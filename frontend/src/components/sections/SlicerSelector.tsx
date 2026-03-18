@@ -245,7 +245,7 @@ export default function SlicerSelector({
 
           {/* Dropdown menu */}
           {isDropdownOpen && (
-            <div className="absolute right-0 z-50 mt-1 w-full min-w-[200px] rounded-md border border-gray-600 bg-gray-800 py-1 shadow-lg" role="listbox">
+            <div className="absolute bottom-[calc(100%+4px)] right-0 z-50 w-full min-w-[200px] rounded-md border border-gray-200 bg-white dark:border-gray-600 dark:bg-gray-800 py-1 shadow-lg" role="listbox">
               {slicers.map((slicer) => {
                 const style = getSlicerBrandStyle(slicer.id);
                 const isSelected = slicer.id === selectedSlicerId;
@@ -256,24 +256,24 @@ export default function SlicerSelector({
                     role="option"
                     aria-selected={isSelected}
                     onClick={() => handleSelectSlicer(slicer.id)}
-                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-gray-700 ${isSelected ? "bg-gray-700" : ""}`}
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 ${isSelected ? "bg-gray-100 dark:bg-gray-700" : ""}`}
                   >
                     <span className={`inline-block h-2.5 w-2.5 rounded-full ${style.bg}`} />
-                    <span className="text-gray-200">{slicer.display_name}</span>
-                    {isSelected && <span className="ml-auto text-xs text-gray-400">✓</span>}
+                    <span className="text-gray-700 dark:text-gray-200">{slicer.display_name}</span>
+                    {isSelected && <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">✓</span>}
                   </button>
                 );
               })}
 
               {/* Divider + Download 3MF option */}
-              <div className="my-1 border-t border-gray-600" />
+              <div className="my-1 border-t border-gray-200 dark:border-gray-600" />
               <button
                 type="button"
                 onClick={handleDownloadFromMenu}
                 disabled={!downloadUrl}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-200 transition-colors hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-200 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="h-4 w-4 text-gray-500 dark:text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
                   <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
                 </svg>

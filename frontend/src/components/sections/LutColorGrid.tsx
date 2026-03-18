@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useConverterStore } from "../../stores/converterStore";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { hexToRgb, sortByColorDistance } from "../../utils/colorUtils";
-import { isCardModeAvailable, computeCardDimensions } from "../../utils/cardUtils";
+import { isCardModeAvailable } from "../../utils/cardUtils";
 import type { LutColorEntry } from "../../api/types";
 import { useI18n } from "../../i18n/context";
 
@@ -128,6 +128,8 @@ function ColorSwatch({
   );
 }
 
+import { motion } from "framer-motion";
+
 // ========== ColorSection ==========
 
 function ColorSection({
@@ -155,24 +157,32 @@ function ColorSection({
       <p className="text-[10px] font-semibold mb-0.5" style={{ color: titleColor }}>
         {title}
       </p>
-      <div className="grid grid-cols-10 gap-0.5">
+      <motion.div layout className="grid grid-cols-10 gap-0.5">
         {colors.map((c) => {
           const hexNoHash = c.hex.replace("#", "");
           const isTarget = selectedColor
             ? colorRemapMap[selectedColor] === hexNoHash
             : false;
           return (
-            <ColorSwatch
+            <motion.div
+              layout
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
               key={c.hex}
-              entry={c}
-              isTarget={isTarget}
-              isFav={favorites.has(c.hex.toLowerCase())}
-              onClick={() => onColorClick(c.hex)}
-              onDoubleClick={() => onToggleFav(c.hex)}
-            />
+            >
+              <ColorSwatch
+                entry={c}
+                isTarget={isTarget}
+                isFav={favorites.has(c.hex.toLowerCase())}
+                onClick={() => onColorClick(c.hex)}
+                onDoubleClick={() => onToggleFav(c.hex)}
+              />
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -583,28 +593,36 @@ export default function LutColorGrid() {
               onColorClick={handleColorClick}
             />
           ) : (
-            <div className="overflow-y-auto flex flex-col gap-1.5" style={{ maxHeight: '28vh' }} role="listbox" aria-label="LUT 可用颜色列表">
+            <div className="overflow-y-auto dock-scrollbar flex flex-col gap-1.5" style={{ maxHeight: '28vh' }} role="listbox" aria-label="LUT 可用颜色列表">
               {recommendations && recommendations.length > 0 && (
                 <div>
                   <p className="text-[10px] font-semibold mb-0.5" style={{ color: "#f59e0b" }}>
                     {t("lut_grid_recommendations")} ({recommendations.length})
                   </p>
-                  <div className="grid grid-cols-10 gap-0.5">
+                  <motion.div layout className="grid grid-cols-10 gap-0.5" style={{ position: "relative" }}>
                     {recommendations.map((c) => {
                       const hexNoHash = c.hex.replace("#", "");
                       const isTarget = selectedColor ? colorRemapMap[selectedColor] === hexNoHash : false;
                       return (
-                        <ColorSwatch
+                        <motion.div
+                          layout
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.8, opacity: 0 }}
+                          transition={{ type: "spring", bounce: 0, duration: 0.4 }}
                           key={c.hex}
-                          entry={c}
-                          isTarget={isTarget}
-                          isFav={favorites.has(c.hex.toLowerCase())}
-                          onClick={() => handleColorClick(c.hex)}
-                          onDoubleClick={() => toggleFav(c.hex)}
-                        />
+                        >
+                          <ColorSwatch
+                            entry={c}
+                            isTarget={isTarget}
+                            isFav={favorites.has(c.hex.toLowerCase())}
+                            onClick={() => handleColorClick(c.hex)}
+                            onDoubleClick={() => toggleFav(c.hex)}
+                          />
+                        </motion.div>
                       );
                     })}
-                  </div>
+                  </motion.div>
                 </div>
               )}
               <ColorSection
