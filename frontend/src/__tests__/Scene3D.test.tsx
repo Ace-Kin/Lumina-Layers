@@ -30,6 +30,9 @@ vi.mock("@react-three/drei", () => ({
       data-environment-intensity={String(props.environmentIntensity ?? "")}
     />
   ),
+  Html: ({ children, ...props }: Record<string, unknown> & { children?: React.ReactNode }) => (
+    <div data-testid="mock-html" {...(props as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>
+  ),
 }));
 
 // Override the global Canvas mock to capture onPointerMissed
@@ -80,7 +83,7 @@ describe("Scene3D", () => {
       useConverterStore.setState({ isLoading: true });
       render(<Scene3D />);
       const overlay = screen.getByTestId("loading-overlay");
-      const spinner = overlay.querySelector(".animate-spin");
+      const spinner = overlay.querySelector(".rgb-loader-ring");
       expect(spinner).toBeInTheDocument();
     });
   });

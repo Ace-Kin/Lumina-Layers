@@ -12,7 +12,7 @@ describe("LoadingSpinner", () => {
   it("contains an animated element", () => {
     render(<LoadingSpinner />);
     const spinner = screen.getByTestId("loading-spinner");
-    const animated = spinner.querySelector(".animate-spin");
+    const animated = spinner.querySelector(".animate-glow-spin");
     expect(animated).not.toBeNull();
   });
 });

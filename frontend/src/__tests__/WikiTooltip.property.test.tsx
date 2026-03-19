@@ -192,7 +192,7 @@ describe("Feature: wiki-tooltip, Property 1: Content rendering completeness", ()
 
         // Description: second child div inside bubble
         const descEl = bubble!.querySelector(
-          ".text-xs.text-gray-300"
+          ".text-xs.text-gray-500"
         );
         expect(descEl).not.toBeNull();
         expect(descEl!.textContent).toBe(description);
