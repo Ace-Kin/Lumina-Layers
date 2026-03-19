@@ -1241,6 +1241,37 @@ export const translations: Record<string, Record<"zh" | "en", string>> = {
     zh: "清除缓存失败，请稍后重试",
     en: "Failed to clear cache. Please try again.",
   },
+
+
+  // ==================== Settings Panel (Slicer Settings) ====================
+  "settings.slicer_settings": {
+    zh: "切片软件设置",
+    en: "Slicer Settings",
+  },
+  "settings.slicer_software": {
+    zh: "切片软件",
+    en: "Slicer Software",
+  },
+  "settings.printer_model": {
+    zh: "打印机型号",
+    en: "Printer Model",
+  },
+  "settings.bed_size": {
+    zh: "打印床尺寸",
+    en: "Bed Size",
+  },
+  "settings.nozzle_count": {
+    zh: "喷头数量",
+    en: "Nozzle Count",
+  },
+  "settings.dual_head": {
+    zh: "双头",
+    en: "Dual Head",
+  },
+  "settings.single_head": {
+    zh: "单头",
+    en: "Single Head",
+  },
   "loading.generating": {
     zh: "模型生成中...",
     en: "Generating model...",

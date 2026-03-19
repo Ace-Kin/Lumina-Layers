@@ -1,12 +1,14 @@
 /**
  * SettingsPanel - System settings page.
- * 系统设置页面，包含缓存清理功能。
+ * 系统设置页面，包含切片软件设置和缓存清理功能。
  */
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useI18n } from "../i18n/context";
-import { clearCache } from "../api/system";
+import { clearCache, getPrinters, getSlicers } from "../api/system";
+import { useSettingsStore } from "../stores/settingsStore";
+import type { PrinterInfo, SlicerOption } from "../api/types";
 import Button from "./ui/Button";
 import { PanelIntro, StatusBanner, centeredPanelClass, sectionCardClass } from "./ui/panelPrimitives";
 
@@ -15,6 +17,88 @@ export default function SettingsPanel() {
 
   const [clearing, setClearing] = useState(false);
   const [cacheResult, setCacheResult] = useState<string | null>(null);
+
+  // Printer list state (task 5.2)
+  const [printers, setPrinters] = useState<PrinterInfo[]>([]);
+  const [printersLoading, setPrintersLoading] = useState(true);
+
+  // Slicer list state
+  const [slicers, setSlicers] = useState<SlicerOption[]>([]);
+  const [slicersLoading, setSlicersLoading] = useState(true);
+
+  // Store state (task 5.3)
+  const printerModel = useSettingsStore((s) => s.printerModel);
+  const setPrinterModel = useSettingsStore((s) => s.setPrinterModel);
+  const slicerSoftware = useSettingsStore((s) => s.slicerSoftware);
+  const setSlicerSoftware = useSettingsStore((s) => s.setSlicerSoftware);
+  const setLastBedLabel = useSettingsStore((s) => s.setLastBedLabel);
+  const syncToBackend = useSettingsStore((s) => s.syncToBackend);
+
+  // Load printers and slicers on mount
+  useEffect(() => {
+    let cancelled = false;
+    setPrintersLoading(true);
+    setSlicersLoading(true);
+    getPrinters()
+      .then((list) => {
+        if (!cancelled) setPrinters(list);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setPrintersLoading(false);
+      });
+    getSlicers()
+      .then((list) => {
+        if (!cancelled) setSlicers(list);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setSlicersLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Filter printers by selected slicer
+  const filteredPrinters = printers.filter(
+    (p) =>
+      !p.supported_slicers ||
+      p.supported_slicers.length === 0 ||
+      p.supported_slicers.includes(slicerSoftware)
+  );
+
+  // Handle printer selection change (task 5.3 + 6.1)
+  const handlePrinterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value;
+    setPrinterModel(id);
+    const selected = printers.find((p) => p.id === id);
+    if (selected) {
+      setLastBedLabel(`${selected.bed_width}×${selected.bed_depth} mm`);
+    }
+    syncToBackend();
+  };
+
+  // Handle slicer selection change — auto-select first compatible printer
+  const handleSlicerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value;
+    setSlicerSoftware(id);
+    // If current printer doesn't support the new slicer, switch to first compatible
+    const compatible = printers.filter(
+      (p) =>
+        !p.supported_slicers ||
+        p.supported_slicers.length === 0 ||
+        p.supported_slicers.includes(id)
+    );
+    const currentStillValid = compatible.some((p) => p.id === printerModel);
+    if (!currentStillValid && compatible.length > 0) {
+      setPrinterModel(compatible[0].id);
+      setLastBedLabel(
+        `${compatible[0].bed_width}×${compatible[0].bed_depth} mm`
+      );
+    }
+    syncToBackend();
+  };
+
+  const selectedPrinter = printers.find((p) => p.id === printerModel);
 
   const handleClearCache = async () => {
     setClearing(true);
@@ -49,6 +133,72 @@ export default function SettingsPanel() {
         title={t("settings.title")}
         description={t("settings.desc")}
       />
+
+      <section className={`${sectionCardClass} flex flex-col gap-4`}>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+            {t("settings.slicer_settings")}
+          </p>
+          <h4 className="mt-1 text-base font-semibold text-slate-900 dark:text-slate-50">
+            {t("settings.printer_model")}
+          </h4>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm text-slate-500 dark:text-slate-400">
+              {t("settings.slicer_software")}
+            </span>
+            <select
+              id="slicer-software-select"
+              value={slicerSoftware}
+              onChange={handleSlicerChange}
+              disabled={slicersLoading}
+              className="w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-wait disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-800"
+            >
+              {slicers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.display_name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm text-slate-500 dark:text-slate-400">
+              {t("settings.printer_model")}
+            </span>
+            <select
+              id="printer-model-select"
+              value={printerModel}
+              onChange={handlePrinterChange}
+              disabled={printersLoading}
+              className="w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-wait disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-800"
+            >
+              {filteredPrinters.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.display_name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {selectedPrinter && (
+          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+            <span>
+              {t("settings.bed_size")}: {selectedPrinter.bed_width}&times;{selectedPrinter.bed_depth} mm
+            </span>
+            <span className="text-slate-300 dark:text-slate-600">|</span>
+            <span>
+              {t("settings.nozzle_count")}: {selectedPrinter.nozzle_count}
+            </span>
+            <span className="text-slate-300 dark:text-slate-600">|</span>
+            <span>
+              {selectedPrinter.is_dual_head
+                ? t("settings.dual_head")
+                : t("settings.single_head")}
+            </span>
+          </div>
+        )}
+      </section>
 
       <section className={`${sectionCardClass} flex flex-col gap-4`}>
         <div>
