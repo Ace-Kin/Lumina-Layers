@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useRef, useEffect, useCallback, useState } from "react";
 import { useExtractorStore } from "../stores/extractorStore";
 import { ExtractorColorMode } from "../api/types";
@@ -234,12 +235,12 @@ export default function ExtractorCanvas() {
     return (
       <div
         data-testid="extractor-results"
-        className="flex h-full flex-1 flex-col items-center justify-center gap-4 overflow-auto p-6"
+        className="flex h-full flex-1 flex-col gap-4 overflow-auto px-5 py-4"
       >
         {/* 色卡 + LUT 预览：左右并排，等宽 */}
-        <div className="flex flex-row items-start gap-6 w-full justify-center">
+        <div className="flex h-full w-full flex-row items-stretch gap-5">
           {warp_view_url && (
-            <div className="flex min-w-0 flex-1 flex-col items-center gap-3 rounded-[24px] border border-slate-200/80 bg-white/45 p-4 shadow-[var(--shadow-control)] dark:border-slate-700/80 dark:bg-slate-900/45">
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
               <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                 {t("ext_canvas_warp_view")}
               </span>
@@ -247,12 +248,12 @@ export default function ExtractorCanvas() {
                 data-testid="warp-view-image"
                 src={warp_view_url}
                 alt="Warp view"
-                className="w-full max-h-[55vh] rounded-[20px] border border-slate-200/80 object-contain dark:border-slate-700/80"
+                className="h-full max-h-[72vh] w-full object-contain"
               />
             </div>
           )}
           {lut_preview_url && (
-            <div className="flex min-w-0 flex-1 flex-col items-center gap-3 rounded-[24px] border border-slate-200/80 bg-white/45 p-4 shadow-[var(--shadow-control)] dark:border-slate-700/80 dark:bg-slate-900/45">
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
               <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                 {t("ext_canvas_lut_preview")}
               </span>
@@ -263,19 +264,8 @@ export default function ExtractorCanvas() {
                   src={lut_preview_url}
                   alt="LUT preview"
                   onClick={handleLutPreviewClick}
-                  className="w-full max-h-[55vh] cursor-crosshair rounded-[20px] border border-slate-200/80 object-contain dark:border-slate-700/80"
+                  className="h-full max-h-[72vh] w-full cursor-crosshair object-contain"
                 />
-                <style>{`
-                  @keyframes rainbow-border {
-                    0%   { border-color: hsl(0, 100%, 55%); }
-                    16%  { border-color: hsl(60, 100%, 55%); }
-                    33%  { border-color: hsl(120, 100%, 55%); }
-                    50%  { border-color: hsl(180, 100%, 55%); }
-                    66%  { border-color: hsl(240, 100%, 55%); }
-                    83%  { border-color: hsl(300, 100%, 55%); }
-                    100% { border-color: hsl(360, 100%, 55%); }
-                  }
-                `}</style>
                 {selectedCell && renderedRect && (() => {
                   const gridSize = LUT_GRID_SIZE[color_mode] ?? 32;
                   const overlay = getCellOverlayStyle(selectedCell[0], selectedCell[1], renderedRect, gridSize);
@@ -288,11 +278,10 @@ export default function ExtractorCanvas() {
                         top: overlay.top,
                         width: overlay.width,
                         height: overlay.height,
-                        border: "2px solid",
+                        border: "2px solid rgba(96, 165, 250, 0.92)",
                         pointerEvents: "none",
-                        boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.45)",
+                        boxShadow: "0 0 0 1px rgba(255, 255, 255, 0.55)",
                         boxSizing: "border-box",
-                        animation: "rainbow-border 3s linear infinite",
                       }}
                     />
                   );
@@ -305,7 +294,7 @@ export default function ExtractorCanvas() {
         {selectedCell && (
           <div
             data-testid="manual-fix-popup"
-            className="flex items-center gap-3 rounded-[20px] border border-slate-200/80 bg-white/80 px-4 py-3 shadow-[var(--shadow-control-hover)] dark:border-slate-700/80 dark:bg-slate-900/82"
+            className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/96 px-4 py-3 dark:border-slate-700/80 dark:bg-slate-900/96"
           >
             <span className="text-sm text-slate-700 dark:text-slate-300">
               {t("ext_canvas_row")} {selectedCell[0] + 1} / {t("ext_canvas_col")} {selectedCell[1] + 1}
@@ -369,7 +358,7 @@ export default function ExtractorCanvas() {
 
   // ===== Canvas mode =====
   return (
-    <div className="flex h-full flex-1 flex-col items-center justify-center gap-4 p-6">
+    <div className="flex h-full flex-1 flex-col items-center justify-center gap-4 px-5 py-4">
       {/* Corner hint */}
       <p
         data-testid="corner-hint"
@@ -387,7 +376,7 @@ export default function ExtractorCanvas() {
         width={imageNaturalWidth ?? 800}
         height={imageNaturalHeight ?? 600}
         onClick={handleCanvasClick}
-        className="max-h-[75vh] max-w-full cursor-crosshair rounded-[24px] border border-slate-200/80 shadow-[var(--shadow-control-hover)] dark:border-slate-700/80"
+        className="max-h-full max-w-full cursor-crosshair object-contain"
         style={{ objectFit: "contain" }}
       />
     </div>

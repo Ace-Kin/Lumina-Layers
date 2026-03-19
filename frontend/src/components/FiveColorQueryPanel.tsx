@@ -47,7 +47,7 @@ export default function FiveColorQueryPanel() {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", damping: 25, stiffness: 300 }}
-      className={`${panelSurfaceClass} mx-auto flex h-full w-full max-w-6xl flex-col gap-5 overflow-hidden text-slate-900 dark:text-white`}
+      className={`${panelSurfaceClass} flex h-full w-full flex-col gap-5 overflow-hidden text-slate-900 dark:text-white`}
     >
       <PanelIntro
         eyebrow={t("tab.fiveColor")}
@@ -55,7 +55,7 @@ export default function FiveColorQueryPanel() {
         description={t("five_color_desc")}
       />
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)_240px]">
+      <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[300px_minmax(0,1fr)_260px]">
         <section className={`${sectionCardClass} flex min-h-0 flex-col gap-4`}>
           <div className="flex flex-col gap-3">
             <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50">{t("five_color_palette")}</h3>
@@ -113,7 +113,7 @@ export default function FiveColorQueryPanel() {
         <section className={`${sectionCardClass} relative flex min-h-0 flex-col items-center justify-center gap-4 overflow-hidden`}>
           <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-blue-500/10 to-transparent" />
           <div className="relative flex w-full flex-1 items-center justify-center">
-            <div className="h-full max-h-[420px] w-full max-w-xl">
+            <div className="h-full w-full">
               <FiveColorCanvas
                 slices={canvasSlices}
                 resultHex={queryResult?.found ? queryResult.result_hex : null}

@@ -104,6 +104,7 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
   const leftDockRef = useRef<HTMLDivElement>(null);
   const rightDockRef = useRef<HTMLDivElement>(null);
   const colorWorkstationRef = useRef<HTMLDivElement>(null);
+  const measuredHeightsRef = useRef(new Map<WidgetId, number>());
   const dragPositionRef = useRef<{ x: number; y: number } | null>(null);
   const dragSourceRef = useRef<{ edge: 'left' | 'right'; scrollTop: number } | null>(null);
   const insertPreviewRef = useRef<InsertPreviewState | null>(null);
@@ -119,19 +120,22 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
-  const measureWidgetHeights = useCallback(() => {
+  const syncMeasuredHeights = useCallback(() => {
     const container = containerRef.current;
-    const measuredHeights = new Map<WidgetId, number>();
-    if (!container) return measuredHeights;
+    if (!container) {
+      measuredHeightsRef.current = new Map();
+      return;
+    }
 
+    const nextHeights = new Map<WidgetId, number>();
     for (const id of TAB_WIDGET_MAP['converter']) {
       const el = container.querySelector(`[data-widget-id="${id}"]`) as HTMLElement | null;
       if (el) {
-        measuredHeights.set(id, el.offsetHeight);
+        nextHeights.set(id, el.offsetHeight);
       }
     }
 
-    return measuredHeights;
+    measuredHeightsRef.current = nextHeights;
   }, []);
 
   // Responsive resize handler — clamp free widgets & recalculate stacks
@@ -155,7 +159,7 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
       });
 
     // Measure actual DOM heights for expanded widgets
-    const measuredHeights = measureWidgetHeights();
+    const measuredHeights = measuredHeightsRef.current;
 
     // Recalculate stack positions for snapped widgets in current tab only
     // Re-read state after potential snapToEdge calls
@@ -172,7 +176,7 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
       }
     }
     setWidgetPositions(batchedPositions);
-  }, [measureWidgetHeights, setWidgetPositions]);
+  }, [setWidgetPositions]);
 
   // ResizeObserver to detect widget content height changes (e.g. checkbox
   // toggling extra options) and recalculate stack positions automatically.
@@ -188,26 +192,37 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
       debounceTimer = setTimeout(() => recalculateStacks(), 50);
     };
 
-    const observer = new ResizeObserver(debouncedRecalc);
-
-    // Observe all widget elements in the container
-    const widgetEls = container.querySelectorAll('[data-widget-id]');
-    widgetEls.forEach((el) => observer.observe(el));
-
-    // Also observe newly added widgets via MutationObserver
-    const mutationObs = new MutationObserver(() => {
+    const observeWidgets = () => {
       observer.disconnect();
-      const els = container.querySelectorAll('[data-widget-id]');
-      els.forEach((el) => observer.observe(el));
+      syncMeasuredHeights();
+      const widgetEls = container.querySelectorAll('[data-widget-id]');
+      widgetEls.forEach((el) => observer.observe(el));
+    };
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const el = entry.target as HTMLElement;
+        const id = el.dataset.widgetId as WidgetId | undefined;
+        if (id) {
+          measuredHeightsRef.current.set(id, el.offsetHeight);
+        }
+      }
+      debouncedRecalc();
+    });
+
+    const mutationObs = new MutationObserver(() => {
+      observeWidgets();
+      debouncedRecalc();
     });
     mutationObs.observe(container, { childList: true, subtree: true });
+    observeWidgets();
 
     return () => {
       observer.disconnect();
       mutationObs.disconnect();
       if (debounceTimer) clearTimeout(debounceTimer);
     };
-  }, [recalculateStacks, activeTab]);
+  }, [recalculateStacks, activeTab, syncMeasuredHeights]);
 
   useEffect(() => {
     window.addEventListener('resize', recalculateStacks);
@@ -312,9 +327,8 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
       .filter((w) => w.visible && (edge === 'left' ? w.snapEdge !== 'right' : w.snapEdge === 'right'))
       .sort((a, b) => a.stackOrder - b.stackOrder);
     if (stackWidgets.length === 0) return 0;
-    const measuredHeights = measureWidgetHeights();
     return stackWidgets.reduce(
-      (sum, w) => sum + resolveWidgetHeight(w, measuredHeights) + STACK_GAP,
+      (sum, w) => sum + resolveWidgetHeight(w, measuredHeightsRef.current) + STACK_GAP,
       STACK_GAP
     );
   };
@@ -349,7 +363,6 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
     (draggedId: WidgetId, targetEdge: 'left' | 'right', contentDropY: number) => {
       const state = useWidgetStore.getState();
       const currentTabIds = TAB_WIDGET_MAP['converter'];
-      const measuredHeights = measureWidgetHeights();
       const siblings = currentTabIds
         .map((wid) => state.widgets[wid])
         .filter((w) => w.snapEdge === targetEdge && w.visible && w.id !== draggedId)
@@ -364,7 +377,7 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
       let accY = STACK_GAP;
 
       for (const sibling of siblings) {
-        const h = resolveWidgetHeight(sibling, measuredHeights);
+        const h = resolveWidgetHeight(sibling, measuredHeightsRef.current);
         const midpoint = accY + h / 2;
 
         if (!inserted && contentDropY < midpoint) {
@@ -389,7 +402,7 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
 
       return { orderedIds, lineY, upperId, lowerId };
     },
-    [measureWidgetHeights]
+    []
   );
 
   const handleDragStart = useCallback(
@@ -600,10 +613,10 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
           <DragOverlay>
             {activeWidgetId ? (
               <div
-                className="z-40 rounded-xl shadow-2xl border border-white/30 backdrop-blur-xl bg-white/50 dark:bg-gray-900/50 opacity-80"
+                className="z-40 rounded-lg border border-slate-200/80 bg-slate-50/92 opacity-90 shadow-[var(--shadow-control)] dark:border-slate-700/80 dark:bg-slate-950/92"
                 style={{ width: WIDGET_WIDTH, height: COLLAPSED_HEIGHT }}
               >
-                <div className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                <div className="px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300">
                   {t(WIDGET_REGISTRY.find((w) => w.id === activeWidgetId)?.titleKey ?? activeWidgetId)}
                 </div>
               </div>

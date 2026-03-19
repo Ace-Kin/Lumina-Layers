@@ -6,16 +6,16 @@ export function cx(...classes: Array<string | false | null | undefined>) {
 }
 
 export const panelSurfaceClass =
-  "panel-surface w-full rounded-[28px] p-5 sm:p-6";
+  "panel-surface h-full w-full overflow-auto px-5 py-4 sm:px-7 sm:py-5";
 
 export const centeredPanelClass =
-  `${panelSurfaceClass} mx-auto h-full max-w-3xl overflow-y-auto`;
+  `${panelSurfaceClass}`;
 
 export const sectionCardClass =
-  "panel-section rounded-[24px] p-4 sm:p-5";
+  "panel-section px-0 py-4 sm:py-5";
 
 export const mutedSectionCardClass =
-  "panel-section-muted rounded-[22px] p-4";
+  "panel-section-muted rounded-2xl px-4 py-3";
 
 interface PanelIntroProps {
   title: string;

@@ -98,7 +98,7 @@ function WidgetToggles() {
       <button
         data-testid="panel-controls-toggle"
         className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-all duration-300 rounded-xl outline-none
-          ${isOpen ? 'bg-blue-600 shadow-[0_4px_12px_rgba(37,99,235,0.4)] text-white' : 'bg-gray-200/60 dark:bg-gray-800/60 text-gray-700 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-gray-700/80 shadow-[inset_0_1px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_4px_rgba(0,0,0,0.4)] backdrop-blur-xl border border-white/40 dark:border-white/5'}
+          ${isOpen ? 'bg-blue-600 shadow-[0_4px_12px_rgba(37,99,235,0.25)] text-white' : 'bg-slate-100 dark:bg-slate-900 text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800/80'}
         `}
         style={{ WebkitTapHighlightColor: 'transparent' }}
         onClick={() => setIsOpen(!isOpen)}
@@ -123,7 +123,7 @@ function WidgetToggles() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute right-0 top-full mt-2 w-56 z-50 p-2 flex flex-col gap-1 rounded-2xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden origin-top-right"
+            className="absolute right-0 top-full mt-2 z-50 flex w-56 flex-col gap-1 overflow-hidden rounded-2xl border border-slate-200/80 bg-white/98 p-2 shadow-[var(--shadow-control-hover)] dark:border-slate-800/80 dark:bg-slate-900/98 origin-top-right"
           >
             {filteredRegistry.map((config) => {
               const isActive = visibleWidgetIds.includes(config.id);
@@ -234,7 +234,7 @@ function AppContent() {
         </div>
       </header>
 
-      <main className="relative flex-1 overflow-hidden bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_38%),linear-gradient(to_bottom,rgba(255,255,255,0.72),rgba(241,245,249,0.96))] dark:bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.10),transparent_35%),linear-gradient(to_bottom,rgba(2,6,23,0.92),rgba(2,6,23,1))]">
+      <main className="relative flex-1 overflow-hidden bg-slate-50 dark:bg-slate-950">
         {/* Converter: WidgetWorkspace + Scene3D */}
         <div className={activeTab !== 'converter' ? 'hidden' : 'h-full'}>
           <WidgetWorkspace>
@@ -252,36 +252,20 @@ function AppContent() {
           </WidgetWorkspace>
         </div>
 
-        {activeTab === 'calibration' && (
-          <div className="h-full overflow-auto p-5 sm:p-6">
-            <CalibrationPanel />
-          </div>
-        )}
+        {activeTab === 'calibration' && <CalibrationPanel />}
 
         {activeTab === 'extractor' && (
-          <div className="flex h-full gap-4 p-5 sm:p-6">
+          <div className="flex h-full min-h-0">
             <ExtractorPanel />
-            <div className="panel-surface relative flex-1 overflow-hidden rounded-[28px]">
+            <div className="relative min-h-0 flex-1 overflow-hidden border-l border-slate-200/70 dark:border-slate-800/80">
               <ExtractorCanvas />
             </div>
           </div>
         )}
 
-        {activeTab === 'lut-manager' && (
-          <div className="h-full overflow-auto p-5 sm:p-6">
-            <LutManagerPanel />
-          </div>
-        )}
-        {activeTab === 'five-color' && (
-          <div className="h-full overflow-auto p-5 sm:p-6">
-            <FiveColorQueryPanel />
-          </div>
-        )}
-        {activeTab === 'settings' && (
-          <div className="h-full overflow-auto p-5 sm:p-6">
-            <SettingsPanel />
-          </div>
-        )}
+        {activeTab === 'lut-manager' && <LutManagerPanel />}
+        {activeTab === 'five-color' && <FiveColorQueryPanel />}
+        {activeTab === 'settings' && <SettingsPanel />}
       </main>
     </div>
   );

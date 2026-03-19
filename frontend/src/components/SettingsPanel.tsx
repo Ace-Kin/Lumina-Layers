@@ -42,7 +42,7 @@ export default function SettingsPanel() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", damping: 25, stiffness: 300 }}
       data-testid="settings-panel"
-      className={`${centeredPanelClass} flex max-w-3xl flex-col gap-5`}
+      className={`${centeredPanelClass} flex flex-col gap-5`}
     >
       <PanelIntro
         eyebrow={t("tab.settings")}
