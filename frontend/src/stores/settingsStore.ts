@@ -14,6 +14,10 @@ export interface SettingsState {
   cropEnabled: boolean;
   lastSlicerId: string;
   enableBlur: boolean;
+  enableFancyLoading: boolean;
+  paletteMode: "swatch" | "card";
+  printerModel: string;
+  slicerSoftware: string;
 }
 
 // ========== Actions Interface ==========
@@ -28,6 +32,10 @@ export interface SettingsActions {
   setCropEnabled: (enabled: boolean) => void;
   setLastSlicerId: (id: string) => void;
   setEnableBlur: (enabled: boolean) => void;
+  setEnableFancyLoading: (enabled: boolean) => void;
+  setPaletteMode: (mode: "swatch" | "card") => void;
+  setPrinterModel: (id: string) => void;
+  setSlicerSoftware: (id: string) => void;
   syncToBackend: () => Promise<void>;
 }
 
@@ -37,12 +45,16 @@ export const DEFAULT_SETTINGS: SettingsState = {
   language: "zh",
   theme: "light",
   lastLutName: "",
-  lastColorMode: "4-Color",
+  lastColorMode: "4-Color (RYBW)",
   lastModelingMode: "high-fidelity",
   lastBedLabel: "256×256 mm",
   cropEnabled: true,
   lastSlicerId: "",
   enableBlur: true,
+  enableFancyLoading: true,
+  paletteMode: "swatch",
+  printerModel: "bambu-h2d",
+  slicerSoftware: "BambuStudio",
 };
 
 // ========== Store ==========
@@ -70,6 +82,14 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
 
       setEnableBlur: (enabled: boolean) => set({ enableBlur: enabled }),
 
+      setEnableFancyLoading: (enabled: boolean) => set({ enableFancyLoading: enabled }),
+
+      setPaletteMode: (mode: "swatch" | "card") => set({ paletteMode: mode }),
+
+      setPrinterModel: (id: string) => set({ printerModel: id }),
+
+      setSlicerSoftware: (id: string) => set({ slicerSoftware: id }),
+
       syncToBackend: async () => {
         const state = get();
         try {
@@ -78,8 +98,10 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
             last_modeling_mode: state.lastModelingMode,
             last_color_mode: state.lastColorMode,
             last_slicer: state.lastSlicerId,
-            palette_mode: "swatch",
+            palette_mode: state.paletteMode,
             enable_crop_modal: state.cropEnabled,
+            printer_model: state.printerModel,
+            slicer_software: state.slicerSoftware,
           });
         } catch {
           // best-effort sync — settings are already persisted in localStorage

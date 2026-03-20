@@ -1,17 +1,22 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import * as fc from "fast-check";
 import { useConverterStore } from "../converterStore";
-import type { BatchResponse, BatchItemResult } from "../../api/types";
 
 // ========== Arbitraries ==========
 
-const VALID_MIME_TYPES = ["image/jpeg", "image/png", "image/svg+xml"] as const;
+const VALID_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/svg+xml",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+] as const;
 
 const INVALID_MIME_TYPES = [
   "text/plain",
   "application/pdf",
   "image/gif",
-  "image/webp",
   "image/bmp",
   "video/mp4",
   "application/json",
@@ -40,21 +45,6 @@ const arbValidFileList: fc.Arbitrary<File[]> = fc.array(arbValidFile, {
   maxLength: 10,
 });
 
-/** Arbitrary: a BatchItemResult */
-const arbBatchItemResult: fc.Arbitrary<BatchItemResult> = fc.record({
-  filename: fc.string({ minLength: 1, maxLength: 30 }),
-  status: fc.constantFrom("success", "failed"),
-  error: fc.option(fc.string({ minLength: 1, maxLength: 50 }), { nil: undefined }),
-});
-
-/** Arbitrary: a BatchResponse */
-const arbBatchResponse: fc.Arbitrary<BatchResponse> = fc.record({
-  status: fc.constantFrom("ok", "failed"),
-  message: fc.string({ minLength: 0, maxLength: 50 }),
-  download_url: fc.string({ minLength: 1, maxLength: 50 }),
-  results: fc.array(arbBatchItemResult, { minLength: 0, maxLength: 10 }),
-});
-
 // ========== Helpers ==========
 
 function resetStore(): void {
@@ -66,44 +56,9 @@ function resetStore(): void {
   });
 }
 
-// ========== Property 1 ==========
-
-/**
- * Feature: batch-processing-mode, Property 1: 禁用批量模式清空所有批量状态
- * **Validates: Requirements 1.3, 8.3**
- *
- * For any Converter_Store state where batchMode is true, batchFiles contains
- * any number of files, and batchResult contains any BatchResponse, calling
- * setBatchMode(false) should set batchMode to false, batchFiles to empty
- * array, and batchResult to null.
- */
-describe("Feature: batch-processing-mode, Property 1: 禁用批量模式清空所有批量状态", () => {
-  beforeEach(() => {
-    resetStore();
-  });
-
-  it("setBatchMode(false) clears batchMode, batchFiles, and batchResult", () => {
-    fc.assert(
-      fc.property(arbValidFileList, arbBatchResponse, (files, result) => {
-        // Set up state with batchMode enabled, files, and result
-        useConverterStore.setState({
-          batchMode: true,
-          batchFiles: files,
-          batchResult: result,
-        });
-
-        // Disable batch mode
-        useConverterStore.getState().setBatchMode(false);
-
-        const state = useConverterStore.getState();
-        expect(state.batchMode).toBe(false);
-        expect(state.batchFiles).toEqual([]);
-        expect(state.batchResult).toBeNull();
-      }),
-      { numRuns: 100 },
-    );
-  });
-});
+// ========== Property 1 (removed) ==========
+// setBatchMode has been removed — batchMode is now automatically maintained
+// by handleFilesSelect and removeBatchFile (auto-batch-multiselect refactor).
 
 // ========== Property 2 ==========
 
@@ -239,34 +194,37 @@ describe("Feature: batch-processing-mode, Property 4: 按索引移除文件的�
           ),
         ),
         ([files, index]) => {
-          // Set files on store
-          useConverterStore.setState({ batchFiles: [...files] });
+          // Set files on store (also set batchMode for consistency)
+          useConverterStore.setState({ batchFiles: [...files], batchMode: files.length > 0 });
 
           const originalLength = files.length;
-          const removedFile = files[index];
 
           // Remove file at index
           useConverterStore.getState().removeBatchFile(index);
 
           const state = useConverterStore.getState();
 
-          // Length decreased by 1
-          expect(state.batchFiles).toHaveLength(originalLength - 1);
-
-          // The file at the original index position is no longer there
-          // (either the position doesn't exist or has a different file)
-          if (index < state.batchFiles.length) {
-            expect(state.batchFiles[index]).not.toBe(removedFile);
-          }
-
-          // Verify the remaining files are in correct order
           const expectedRemaining = [
             ...files.slice(0, index),
             ...files.slice(index + 1),
           ];
-          expect(state.batchFiles).toHaveLength(expectedRemaining.length);
-          for (let i = 0; i < expectedRemaining.length; i++) {
-            expect(state.batchFiles[i]).toBe(expectedRemaining[i]);
+
+          if (expectedRemaining.length === 1) {
+            // Auto-downgrade: last file moves to imageFile, batchFiles cleared
+            expect(state.batchFiles).toHaveLength(0);
+            expect(state.imageFile).toBe(expectedRemaining[0]);
+            expect(state.batchMode).toBe(false);
+          } else if (expectedRemaining.length === 0) {
+            // All removed: everything cleared
+            expect(state.batchFiles).toHaveLength(0);
+            expect(state.imageFile).toBeNull();
+            expect(state.batchMode).toBe(false);
+          } else {
+            // Still in BatchMode with multiple files
+            expect(state.batchFiles).toHaveLength(originalLength - 1);
+            for (let i = 0; i < expectedRemaining.length; i++) {
+              expect(state.batchFiles[i]).toBe(expectedRemaining[i]);
+            }
           }
         },
       ),

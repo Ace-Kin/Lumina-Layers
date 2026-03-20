@@ -7,7 +7,7 @@ import { ColorMode } from "../api/types";
 
 const COLOR_MODES = [
   ColorMode.BW,
-  ColorMode.FOUR_COLOR,
+  ColorMode.FOUR_COLOR_RYBW,
   ColorMode.SIX_COLOR,
   ColorMode.EIGHT_COLOR,
   ColorMode.MERGED,
@@ -27,7 +27,18 @@ const lutInfoArb = fc.record({
   path: fc.constant("/fake/path.npy"),
 });
 
-const lutListArb = fc.array(lutInfoArb, { minLength: 0, maxLength: 20 });
+// Use uniqueBy to ensure no duplicate names — real LUT lists have unique names,
+// and duplicate names cause ambiguous find() lookups in test assertions.
+const lutListArb = fc
+  .array(lutInfoArb, { minLength: 0, maxLength: 20 })
+  .map((list) => {
+    const seen = new Set<string>();
+    return list.filter((lut) => {
+      if (seen.has(lut.name)) return false;
+      seen.add(lut.name);
+      return true;
+    });
+  });
 
 // ========== Tests ==========
 

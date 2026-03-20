@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import fc from "fast-check";
 import { useExtractorStore } from "../stores/extractorStore";
 import { ExtractorColorMode, ExtractorPage } from "../api/types";
@@ -44,7 +44,7 @@ function resetExtractorStore(): void {
     imagePreviewUrl: null,
     imageNaturalWidth: null,
     imageNaturalHeight: null,
-    color_mode: ExtractorColorMode.FOUR_COLOR,
+    color_mode: ExtractorColorMode.FOUR_COLOR_RYBW,
     page: ExtractorPage.PAGE_1,
     corner_points: [],
     offset_x: 0,
@@ -127,23 +127,26 @@ describe("Feature: extractor-calibration-tab, Property 6: 提取按钮禁用状�
 // ========== Unit Tests ==========
 
 describe("ExtractorPanel 单元测试", () => {
-  it("renders all 5 color mode options in the dropdown", async () => {
+  it("renders all color mode options in the dropdown", async () => {
     const ExtractorPanel = (await import("../components/ExtractorPanel")).default;
 
     render(<ExtractorPanel />);
 
     const colorModeDiv = screen.getByTestId("color-mode-select");
-    const select = colorModeDiv.querySelector("select")!;
-    const options = Array.from(select.querySelectorAll("option"));
+    const combobox = within(colorModeDiv).getByRole("combobox");
 
-    const optionValues = options.map((o) => o.value);
+    fireEvent.click(combobox);
 
-    expect(optionValues).toContain(ExtractorColorMode.BW);
-    expect(optionValues).toContain(ExtractorColorMode.FOUR_COLOR);
-    expect(optionValues).toContain(ExtractorColorMode.FIVE_COLOR_EXT);
-    expect(optionValues).toContain(ExtractorColorMode.SIX_COLOR);
-    expect(optionValues).toContain(ExtractorColorMode.EIGHT_COLOR);
-    expect(options.length).toBe(5);
+    const listbox = screen.getByRole("listbox");
+    const options = within(listbox).getAllByRole("option");
+    const optionLabels = options.map((option) => option.textContent?.trim());
+    const expectedModes = Object.values(ExtractorColorMode);
+
+    expect(optionLabels).toEqual(expect.arrayContaining(expectedModes));
+    expect(options).toHaveLength(expectedModes.length);
+
+    fireEvent.click(within(listbox).getByRole("option", { name: ExtractorColorMode.FIVE_COLOR_EXT }));
+    expect(useExtractorStore.getState().color_mode).toBe(ExtractorColorMode.FIVE_COLOR_EXT);
   });
 
   it("shows page-select when color_mode is EIGHT_COLOR", async () => {
@@ -161,7 +164,7 @@ describe("ExtractorPanel 单元测试", () => {
 
     for (const mode of [
       ExtractorColorMode.BW,
-      ExtractorColorMode.FOUR_COLOR,
+      ExtractorColorMode.FOUR_COLOR_RYBW,
       ExtractorColorMode.SIX_COLOR,
     ]) {
       cleanup();
