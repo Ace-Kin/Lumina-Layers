@@ -73,9 +73,8 @@ body {
 }
 
 .panel-section {
-  background: var(--surface-section);
-  border: 0;
-  border-bottom: 1px solid var(--surface-outline);
+  background: var(--surface-section-muted);
+  border: 1px solid var(--surface-outline);
   box-shadow: none;
 }
 

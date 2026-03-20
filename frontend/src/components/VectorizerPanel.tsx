@@ -14,6 +14,7 @@ import Switch from "./ui/Switch";
 import Button from "./ui/Button";
 import Accordion from "./ui/Accordion";
 import ZoomViewport from "./ui/ZoomViewport";
+import { cx, sectionCardClass } from "./ui/panelPrimitives";
 
 const ACCEPT_FORMATS = "image/png,image/jpeg,image/webp,image/bmp";
 
@@ -98,9 +99,9 @@ export default function VectorizerPanel() {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", damping: 25, stiffness: 300 }}
-      className="w-full max-w-4xl mx-auto h-full overflow-y-auto p-6"
+      className="mx-auto h-full w-full max-w-4xl overflow-y-auto p-6"
     >
-      <div className="bg-white/85 dark:bg-gray-900/85 backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 shadow-2xl rounded-2xl p-6 flex flex-col gap-5">
+      <div className="flex flex-col gap-5 rounded-[32px] border border-slate-200/80 bg-white/85 p-6 backdrop-blur-2xl dark:border-slate-700/60 dark:bg-slate-900/85">
         {/* Title */}
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
           {t("vec.title")}
@@ -114,7 +115,7 @@ export default function VectorizerPanel() {
         />
 
         {/* ===== Basic Parameters ===== */}
-        <div className="flex flex-col gap-3">
+        <div className={cx(sectionCardClass, "flex flex-col gap-3")}>
           <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
             {t("vec.basic_params")}
           </h3>
@@ -405,7 +406,7 @@ export default function VectorizerPanel() {
 
         {/* Error */}
         {error && (
-          <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
+          <div className="rounded-[22px] border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20">
             <p className="text-sm text-red-600 dark:text-red-400">
               {t("vec.error")}: {error}
             </p>
@@ -427,7 +428,7 @@ export default function VectorizerPanel() {
               <button
                 type="button"
                 onClick={compareZoom.reset}
-                className="rounded bg-gray-200 dark:bg-gray-700 px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                className="rounded-xl bg-gray-200 px-2.5 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
               >
                 {t("zoom_reset")}
               </button>
@@ -467,7 +468,7 @@ export default function VectorizerPanel() {
             </div>
 
             {/* Stats & Download */}
-            <div className="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 px-4 py-3">
+            <div className="flex items-center justify-between rounded-[24px] border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/60">
               <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-300">
                 <span>
                   {t("vec.shapes")}: <strong>{result.num_shapes}</strong>
@@ -486,7 +487,7 @@ export default function VectorizerPanel() {
                   {result.palette.slice(0, 16).map((hex, i) => (
                     <div
                       key={i}
-                      className="w-4 h-4 rounded-sm border border-gray-300 dark:border-gray-600"
+                      className="h-4 w-4 rounded-md border border-gray-300 dark:border-gray-600"
                       style={{ backgroundColor: hex }}
                       title={hex}
                     />

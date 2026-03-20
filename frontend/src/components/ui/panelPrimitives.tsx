@@ -12,10 +12,10 @@ export const centeredPanelClass =
   `${panelSurfaceClass}`;
 
 export const sectionCardClass =
-  "panel-section px-0 py-4 sm:py-5";
+  "panel-section rounded-[28px] px-4 py-4 sm:px-5 sm:py-5";
 
 export const mutedSectionCardClass =
-  "panel-section-muted rounded-2xl px-4 py-3";
+  "panel-section-muted rounded-[22px] px-4 py-3";
 
 export const workstationPanelCardClass =
   "panel-section-muted h-full rounded-[28px] px-4 py-4";
@@ -25,6 +25,21 @@ export const workstationInsetCardClass =
 
 export const workstationShellClass =
   "rounded-t-[28px]";
+
+export const workstationFieldLabelClass =
+  "text-sm font-medium text-slate-700 dark:text-slate-200";
+
+export const workstationInputClass =
+  "min-h-11 w-full rounded-[22px] border border-slate-200/80 bg-white/82 px-3.5 py-2 text-sm text-slate-800 outline-none shadow-[var(--shadow-control)] transition-all duration-200 hover:border-slate-300 hover:bg-white/90 focus:border-blue-400 focus:ring-4 focus:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-700/80 dark:bg-slate-900/72 dark:text-slate-100 dark:hover:border-slate-600";
+
+export const workstationChoiceRowClass =
+  "rounded-[22px] border border-slate-200/80 bg-white/60 px-3.5 py-3 shadow-[var(--shadow-control)] transition-all duration-200 dark:border-slate-700/80 dark:bg-slate-900/55";
+
+export const workstationChoiceRowActiveClass =
+  "border-blue-400 bg-white/92 dark:border-blue-400/80 dark:bg-slate-900/82";
+
+export const workstationChoiceRowDisabledClass =
+  "cursor-not-allowed opacity-45";
 
 export const desktopSplitLayoutClass =
   "grid min-h-0 gap-6 xl:grid-cols-[minmax(360px,440px)_minmax(0,1fr)] xl:items-start";

@@ -7,7 +7,14 @@ import Slider from "./ui/Slider";
 import Checkbox from "./ui/Checkbox";
 import Button from "./ui/Button";
 import ImageUpload from "./ui/ImageUpload";
-import { PanelIntro, StatusBanner, panelSurfaceClass, sectionCardClass } from "./ui/panelPrimitives";
+import {
+  PanelIntro,
+  StatusBanner,
+  cx,
+  panelSurfaceClass,
+  sectionCardClass,
+  workstationInputClass,
+} from "./ui/panelPrimitives";
 
 const colorModeOptions = Object.values(ExtractorColorMode).map((v) => ({
   label: v,
@@ -19,6 +26,11 @@ const MATERIAL_OPTIONS = [
   "PLA",
   "PETG",
 ];
+
+const materialOptions = MATERIAL_OPTIONS.map((material) => ({
+  label: material,
+  value: material,
+}));
 
 const pageOptions = Object.values(ExtractorPage).map((v) => ({
   label: v,
@@ -209,30 +221,23 @@ export default function ExtractorPanel() {
               <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50">{t("ext_palette_title")}</h3>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t("ext_material_type_label")}</p>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="shrink-0 text-slate-500 dark:text-slate-400">{t("ext_material_type_label")}</span>
-              <select
-                className="min-h-11 flex-1 rounded-2xl border border-slate-200/80 bg-white/82 px-3 py-2 text-sm text-slate-800 outline-none shadow-[var(--shadow-control)] focus:border-blue-400 focus:ring-4 focus:ring-[var(--focus-ring)] dark:border-slate-700/80 dark:bg-slate-900/72 dark:text-slate-100"
-                value={defaultPalette[0]?.material ?? "PLA Basic"}
-                onChange={(e) => {
-                  const mat = e.target.value;
-                  defaultPalette.forEach((_, i) => updatePaletteEntry(i, { material: mat }));
-                }}
-              >
-                {MATERIAL_OPTIONS.map((mat) => (
-                  <option key={mat} value={mat}>{mat}</option>
-                ))}
-              </select>
-            </div>
+            <Dropdown
+              label={t("ext_material_type_label")}
+              value={defaultPalette[0]?.material ?? "PLA"}
+              options={materialOptions}
+              onChange={(mat) => {
+                defaultPalette.forEach((_, i) => updatePaletteEntry(i, { material: mat }));
+              }}
+            />
             <div className="flex flex-col gap-2">
               {defaultPalette.map((entry, idx) => (
-                <div key={idx} className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/55 px-3 py-2 dark:border-slate-700/80 dark:bg-slate-900/55">
+                <div key={idx} className="flex items-center gap-3 rounded-[22px] border border-slate-200/80 bg-white/55 px-3 py-2 dark:border-slate-700/80 dark:bg-slate-900/55">
                   <span
                     className="h-5 w-5 shrink-0 rounded-xl border border-slate-300/80 dark:border-slate-600/80"
                     style={{ backgroundColor: entry.hex_color || "#ccc" }}
                   />
                   <input
-                    className="min-h-10 flex-1 rounded-2xl border border-slate-200/80 bg-white/90 px-3 py-2 text-sm text-slate-800 outline-none shadow-[var(--shadow-control)] focus:border-blue-400 focus:ring-4 focus:ring-[var(--focus-ring)] dark:border-slate-700/80 dark:bg-slate-900 dark:text-slate-100"
+                    className={cx(workstationInputClass, "min-h-10 flex-1 px-3")}
                     value={entry.color}
                     onChange={(e) => updatePaletteEntry(idx, { color: e.target.value })}
                   />

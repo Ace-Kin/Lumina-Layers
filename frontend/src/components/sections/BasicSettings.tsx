@@ -10,6 +10,7 @@ import UnifiedUploader from "../ui/UnifiedUploader";
 import Checkbox from "../ui/Checkbox";
 import Dropdown from "../ui/Dropdown";
 import Slider from "../ui/Slider";
+import Button from "../ui/Button";
 import RadioGroup from "../ui/RadioGroup";
 import { CropModal } from "../ui/CropModal";
 import type { CropData } from "../ui/CropModal";
@@ -133,7 +134,7 @@ export default function BasicSettings() {
       )}
 
       <div className="flex items-end gap-2">
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <Dropdown
             label={t("basic_lut_label")}
             value={lut_name}
@@ -149,18 +150,16 @@ export default function BasicSettings() {
           className="hidden"
           onChange={(e) => void handleLutUpload(e)}
         />
-        <button
-          type="button"
+        <Button
+          label={`+ ${t("basic_lut_upload")}`}
+          variant="secondary"
           onClick={() => lutFileRef.current?.click()}
-          className="px-3 py-2 text-xs rounded-md border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
-          title={t("basic_lut_upload")}
-        >
-          📁 {t("basic_lut_upload")}
-        </button>
+          className="shrink-0 whitespace-nowrap px-3"
+        />
       </div>
 
       {lut_name && (
-        <div className="text-xs text-gray-500 -mt-2 px-1">
+        <div className="-mt-2 px-1 text-xs text-slate-500 dark:text-slate-400">
           {t("basic_color_mode_label")}: {color_mode}
         </div>
       )}

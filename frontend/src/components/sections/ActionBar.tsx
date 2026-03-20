@@ -108,7 +108,7 @@ export default function ActionBar() {
         <ZoomableImage
           src={previewImageUrl}
           alt={t("action_preview_alt")}
-          className="w-full rounded-md border border-gray-300 dark:border-gray-700"
+          className="w-full rounded-[22px] border border-gray-300 dark:border-gray-700"
         />
       )}
 
